@@ -11,6 +11,14 @@ import { VerifyDiscordRequest, getRandomEmoji, DiscordRequest } from './utils.js
 import { getShuffledOptions, getResult } from './game.js';
 
 
+/*
+  TODO: Добавление наставников []
+  Взятие стажеров от ФТО []
+
+
+ */
+
+
 // Create an express app
 const app = express();
 // Get port, or default to 3000
@@ -24,6 +32,8 @@ const activeGames = {};
 /**
  * Interactions endpoint URL where Discord will send HTTP requests
  */
+
+
 app.post('/interactions', async function (req, res) {
   // Interaction type and data
   const { type, id, data } = req.body;
@@ -44,8 +54,27 @@ app.post('/interactions', async function (req, res) {
 
     // "test" command
     if (name === 'test') {
+
+      const endpoint = `channels/1218918494280745101/messages/1218973739946086483`;
+
+      await DiscordRequest(endpoint, {
+        method: 'PATCH',
+        body: {
+          content: 'Nice choice ',
+        },
+      });
+
+
+
+
+      console.log('ОТВЕТ:')
+      // console.log(prom.content)
+
       // Send a message into the channel where command was triggered from
       return res.send({
+
+
+
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
           // Fetches a random emoji to send from a helper function
@@ -56,6 +85,10 @@ app.post('/interactions', async function (req, res) {
 
     if (name === 'goods') {
 
+
+      console.log('ОТВЕТ:')
+      console.log(prom.id)
+
       let words = "Активный Амбициозный Авантюрный Благородный Буйный Влиятельный Внимательный Восхитительный Воодушевляющий Всегда уверенный в себе Вдумчивый Грациозный Героический Дерзкий Дисциплинированный Живой Загадочный Заботливый Задумчивый Игривый Интригующий Интеллигентный Инициативный Интеллектуальный Искренний Искусный Коммуникабельный Легкий в общении Ловкий Мужественный Мотивирующий Надежный Настойчивый Непреклонный Непримиримый Непоколебимый Неуправляемый Незабываемый Обаятельный Одаренный Оптимистичный Оригинальный Остроумный Очаровательный Отзывчивый Понимающий Поразительный Потрясающий Передовой Преданный Предприимчивый Прагматичный Проницательный Решительный Рациональный Сексуальный Сильный Смелый Собранный Сострадательный Спокойный Стойкий Стратегический Талантливый Твердый Творческий Трудолюбивый Уверенный в себе Умный Уникальный Уравновешенный Успешный Философский Харизматичный Храбрый Целеустремленный Честный Энергичный Эрудированный".split(" ")
       // Send a message into the channel where command was triggered from
       return res.send({
@@ -63,11 +96,13 @@ app.post('/interactions', async function (req, res) {
         data: {
           // Fetches a random emoji to send from a helper function
           // Math.random() * (1 - words.length-1) + 1
-          content: `<@${req.body.member.user.id}> самый ${words[Math.floor(Math.random()*words.length)].toLowerCase()}!`
+          content: `<@${req.body.member.user.id}> самый ${words[Math.floor(Math.random() * words.length)].toLowerCase()}!`
         },
       });
-    }
 
+
+
+    }
 
     if (data.name === 'button') {
       // Send a message with a button
@@ -167,6 +202,9 @@ app.post('/interactions', async function (req, res) {
 
     if (data.name === 'select') {
       // Send a message with a button
+
+
+
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
@@ -178,8 +216,8 @@ app.post('/interactions', async function (req, res) {
               components: [
                 {
                   style: 1,
-                  label: `Взять FTO`,
-                  custom_id: `dev_button_id`,
+                  label: `QUEUE`,
+                  custom_id: `queue`,
                   disabled: false,
                   emoji: {
                     id: null,
@@ -188,9 +226,20 @@ app.post('/interactions', async function (req, res) {
                   type: 2
                 },
                 {
+                  style: 4,
+                  label: `TAKE`,
+                  custom_id: `take`,
+                  disabled: false,
+                  emoji: {
+                    id: null,
+                    name: `👶`
+                  },
+                  type: 2
+                },
+                {
                   style: 3,
-                  label: `Взять стажера`,
-                  custom_id: `techie_button_id`,
+                  label: `ACTIVE`,
+                  custom_id: `active`,
                   disabled: false,
                   emoji: {
                     id: null,
@@ -214,7 +263,11 @@ app.post('/interactions', async function (req, res) {
               color: 0x5664F1,
               image: {url: "https://i.imgur.com/9PUjV76.png"},
               footer: {text: 'Цель обучения — научить обходиться без учителя (Э. Хаббард).'},
-              author: {name: 'FTP Coordinator', icon_url: 'https://i.imgur.com/JKzAl4J.png'}
+              author: {name: 'FTP Coordinator', icon_url: 'https://i.imgur.com/JKzAl4J.png'},
+              fields: [
+                {name: '', value: ''},
+                {name: 'СТАЖЕРЫㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤНАСТАВНИКИ', value: ''},
+              ]
             }
           ]
         },
@@ -276,6 +329,84 @@ app.post('/interactions', async function (req, res) {
    * Handle requests from interactive components
    * See https://discord.com/developers/docs/interactions/message-components#responding-to-a-component-interaction
    */
+
+  if (type === InteractionType.MESSAGE_COMPONENT) {
+    // custom_id set in payload when sending message component
+    const componentId = data.custom_id;
+    // user who clicked button
+    const userId = req.body.member.user.id;
+
+    if (componentId === 'queue') {
+
+      const fromEndpoint = `channels/1218918494280745101/messages/1218993573333172345`;
+
+      let first_res = await DiscordRequest(fromEndpoint, { method: 'GET'});
+
+      let result = await first_res.json();
+
+      let notElem = true;
+
+      for(let i = 0; i < result.embeds[0].fields.length; i++){  // НЕ ВЫЙДЕТ ЗА ПРЕДЕЛЫ? ??????????????????????
+        if(result.embeds[0].fields[i].value == `<@${req.body.member.user.id}>`){
+
+          console.log('Был массив:')
+          console.log(result.embeds[0].fields)
+          result.embeds[0].fields.splice(i, 1);
+          console.log('Такой элемент найден, он удален, теперь массив такой:')
+          console.log(result.embeds[0].fields)
+          notElem = false;
+        }
+      }
+
+      if(notElem){
+        result.embeds[0].fields.push({name: '', value: `<@${req.body.member.user.id}>`});
+        console.log('Такого элемента не найдено')
+      }
+
+
+      const ToEndpoint = `channels/1218918494280745101/messages/1218993573333172345`;
+
+
+      //console.log(result.embeds[0].fields.at(0))
+
+
+
+      await DiscordRequest(ToEndpoint, {
+        method: 'PATCH',
+        body: {
+          embeds: result.embeds
+        },
+      });
+
+    }
+
+    if (componentId === 'active') {
+
+      const fromEndpoint = `channels/1218918494280745101/messages/1218993573333172345`;
+
+      let first_res = await DiscordRequest(fromEndpoint, { method: 'GET'});
+
+      let result = await first_res.json()
+
+      const ToEndpoint = `channels/1218918494280745101/messages/1218993573333172345`;
+
+
+      //console.log(result.embeds[0].fields.at(0))
+
+      result.embeds[0].fields.push({name: '', value: `<@${req.body.member.user.id}>`}),
+
+          await DiscordRequest(ToEndpoint, {
+            method: 'PATCH',
+            body: {
+              embeds: result.embeds
+            },
+          });
+
+    }
+
+  }
+
+
   if (type === InteractionType.MESSAGE_COMPONENT) {
     // custom_id set in payload when sending message component
     const componentId = data.custom_id;
