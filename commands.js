@@ -24,6 +24,42 @@ const TEST_COMMAND = {
   type: 1,
 };
 
+// Simple goods command
+const GOODS_COMMAND = {
+  name: 'goods',
+  description: 'Most goods',
+  type: 1,
+};
+
+// Simple button command
+const BUTTON_COMMAND = {
+  name: 'button',
+  description: 'Create button',
+  type: 1,
+};
+
+// Simple button command
+const LIST_COMMAND = {
+  name: 'list',
+  description: 'Create list',
+  type: 1,
+};
+
+// Simple button command
+const INPUT_COMMAND = {
+  name: 'input',
+  description: 'Create input',
+  type: 1,
+};
+
+// Simple button command
+const SELECT_COMMAND = {
+  name: 'select',
+  description: 'Create list',
+  type: 1,
+};
+
+
 // Command containing options
 const CHALLENGE_COMMAND = {
   name: 'challenge',
@@ -40,6 +76,6 @@ const CHALLENGE_COMMAND = {
   type: 1,
 };
 
-const ALL_COMMANDS = [TEST_COMMAND, CHALLENGE_COMMAND];
+const ALL_COMMANDS = [TEST_COMMAND, CHALLENGE_COMMAND, GOODS_COMMAND, BUTTON_COMMAND, LIST_COMMAND, SELECT_COMMAND, INPUT_COMMAND];
 
 InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);
