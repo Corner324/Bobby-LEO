@@ -10,10 +10,12 @@ import {
 import { VerifyDiscordRequest, getRandomEmoji, DiscordRequest } from './utils.js';
 import { getShuffledOptions, getResult } from './game.js';
 
+import moment from 'moment';
+
 
 /*
-  TODO: Добавление наставников []
-  Взятие стажеров от ФТО []
+  TODO: Кик через время []
+  Дополнительный лог []
 
 
  */
@@ -50,35 +52,47 @@ app.post('/interactions', async function (req, res) {
    * See https://discord.com/developers/docs/interactions/application-commands#slash-commands
    */
   if (type === InteractionType.APPLICATION_COMMAND) {
-    const { name } = data;
+    const { name, user } = data;
 
     // "test" command
     if (name === 'test') {
 
-      const endpoint = `channels/1218918494280745101/messages/1218973739946086483`;
 
-      await DiscordRequest(endpoint, {
-        method: 'PATCH',
-        body: {
-          content: 'Nice choice ',
-        },
-      });
+      let currentDate = new Date();
+
+      // console.log(currentDate.getFullYear());
+      // console.log(currentDate.getMonth());
+      // console.log(currentDate.getDate());
+      // console.log(currentDate.getHours());
+      // console.log(currentDate.getMinutes());
+      // console.log(currentDate.getSeconds());
+
+      let mainChannel = '/channels/1218918494280745101/messages'
+
+      let messages = await DiscordRequest(mainChannel, {method: 'GET'});
+
+      let messagesData = await messages.json();
+
+      let idLastMessage = messagesData[0].timestamp
 
 
 
+      //console.log(req.body)
+      // console.log(`${currentDate.getDate()}/${currentDate.getMonth()}/${currentDate.getFullYear()}`)
+      // console.log(currentDate)
 
-      console.log('ОТВЕТ:')
-      // console.log(prom.content)
+      console.log(moment(currentDate).unix())
+      console.log(moment(idLastMessage).unix())
 
-      // Send a message into the channel where command was triggered from
+
+
+      let result = Math.floor(Date.parse(idLastMessage)/1000)
+
+
       return res.send({
-
-
-
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
-          // Fetches a random emoji to send from a helper function
-          content: 'hello world ' + getRandomEmoji(),
+          content: `<t:${moment(idLastMessage).unix()}:R>`,
         },
       });
     }
@@ -216,34 +230,34 @@ app.post('/interactions', async function (req, res) {
               components: [
                 {
                   style: 1,
-                  label: `QUEUE`,
+                  label: `СТАЖЕР`,
                   custom_id: `queue`,
                   disabled: false,
                   emoji: {
                     id: null,
-                    name: `👴🏻`
+                    name: `👶🏻`
                   },
                   type: 2
                 },
                 {
-                  style: 4,
-                  label: `TAKE`,
+                  style: 2,
+                  label: `ВЗЯТЬ`,
                   custom_id: `take`,
                   disabled: false,
                   emoji: {
                     id: null,
-                    name: `👶`
+                    name: `🤝`
                   },
                   type: 2
                 },
                 {
                   style: 3,
-                  label: `ACTIVE`,
+                  label: `ФТО`,
                   custom_id: `active`,
                   disabled: false,
                   emoji: {
                     id: null,
-                    name: `👶🏻`
+                    name: `👴🏻`
                   },
                   type: 2
                 }
@@ -256,17 +270,18 @@ app.post('/interactions', async function (req, res) {
               title: `FIELD TRAINING PROGRAM QUEUE`,
               description: "Система очереди для FTO и стажеров. Стажер автоматически покидает очередь через час ожидания, если FTO не был найден.\n" +
                   "\n" +
-                  "QUEUE – встать/выйти из очереди, используется стажерами.\n" +
-                  "TAKE – взять первого в очереди стажера, используется FTO.\n" +
-                  "ACTIVE – обозначить себя доступным и получать уведомления, используется FTO.\n" +
-                  "⟳ – обновляет очередь.",
+                  "**СТАЖЕР** – встать/выйти из очереди, используется стажерами.\n" +
+                  "**ВЗЯТЬ** – взять первого в очереди стажера, используется FTO.\n" +
+                  "**ФТО** – обозначить себя доступным и получать уведомления, используется FTO.\n",
               color: 0x5664F1,
               image: {url: "https://i.imgur.com/9PUjV76.png"},
-              footer: {text: 'Цель обучения — научить обходиться без учителя (Э. Хаббард).'},
+               footer: {text: 'Цель обучения — научить обходиться без учителя (Э. Хаббард).'},
+              //footer: {text: 'О любых проблемах писать - corner324', icon_url: 'https://i.imgur.com/vbsliop.png'},
               author: {name: 'FTP Coordinator', icon_url: 'https://i.imgur.com/JKzAl4J.png'},
               fields: [
                 {name: '', value: ''},
-                {name: 'СТАЖЕРЫㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤНАСТАВНИКИ', value: ''},
+                {name: 'СТАЖЕРЫ', value: '', inline: true},
+                {name: 'НАСТАВНИКИ', value: '', inline: true},
               ]
             }
           ]
@@ -336,39 +351,71 @@ app.post('/interactions', async function (req, res) {
     // user who clicked button
     const userId = req.body.member.user.id;
 
+    let mainChannel = '/channels/1218918494280745101/messages'
+
+    let messages = await DiscordRequest(mainChannel, {method: 'GET'});
+
+    let messagesData = await messages.json();
+
+    let idLastMessage = messagesData[0].id
+
+
     if (componentId === 'queue') {
 
-      const fromEndpoint = `channels/1218918494280745101/messages/1218993573333172345`;
+      const fromEndpoint = mainChannel + '/' + idLastMessage;
 
-      let first_res = await DiscordRequest(fromEndpoint, { method: 'GET'});
+
+      let first_res = await DiscordRequest(fromEndpoint, {method: 'GET'});
 
       let result = await first_res.json();
 
-      let notElem = true;
 
-      for(let i = 0; i < result.embeds[0].fields.length; i++){  // НЕ ВЫЙДЕТ ЗА ПРЕДЕЛЫ? ??????????????????????
-        if(result.embeds[0].fields[i].value == `<@${req.body.member.user.id}>`){
+      if (result.embeds[0].fields[1].value.indexOf(`<@${req.body.member.user.id}>`) !== -1) {
 
-          console.log('Был массив:')
-          console.log(result.embeds[0].fields)
-          result.embeds[0].fields.splice(i, 1);
-          console.log('Такой элемент найден, он удален, теперь массив такой:')
-          console.log(result.embeds[0].fields)
-          notElem = false;
-        }
+
+        result.embeds[0].fields[1].value = result.embeds[0].fields[1].value.replace(`<@${req.body.member.user.id}>`, "del")
+        let index = result.embeds[0].fields[1].value.indexOf(`del`)
+
+        result.embeds[0].fields[1].value = result.embeds[0].fields[1].value.slice(index+20, result.embeds[0].fields[1].value.length)
+
+
+
+
+        await res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `Вы покинули очередь`,
+            // Indicates it'll be an ephemeral message
+            flags: InteractionResponseFlags.EPHEMERAL,
+          }
+        });
+
+      } else {
+
+        let currentDate = new Date();
+        let actual_time = moment(currentDate).unix()
+
+
+
+        result.embeds[0].fields[1].value += `<@${req.body.member.user.id}> <t:${actual_time}:R>\n`;
+        console.log('Такого элемента не найдено, добавлен')
+
+        await res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `Вы встали в очередь как стажер`,
+            // Indicates it'll be an ephemeral message
+            flags: InteractionResponseFlags.EPHEMERAL,
+          }
+        });
+
       }
 
-      if(notElem){
-        result.embeds[0].fields.push({name: '', value: `<@${req.body.member.user.id}>`});
-        console.log('Такого элемента не найдено')
-      }
 
-
-      const ToEndpoint = `channels/1218918494280745101/messages/1218993573333172345`;
+      const ToEndpoint = mainChannel + '/' + idLastMessage;
 
 
       //console.log(result.embeds[0].fields.at(0))
-
 
 
       await DiscordRequest(ToEndpoint, {
@@ -378,33 +425,139 @@ app.post('/interactions', async function (req, res) {
         },
       });
 
+
     }
 
     if (componentId === 'active') {
 
-      const fromEndpoint = `channels/1218918494280745101/messages/1218993573333172345`;
+      const fromEndpoint = mainChannel + '/' + idLastMessage;
 
-      let first_res = await DiscordRequest(fromEndpoint, { method: 'GET'});
+      let first_res = await DiscordRequest(fromEndpoint, {method: 'GET'});
 
-      let result = await first_res.json()
+      let result = await first_res.json();
 
-      const ToEndpoint = `channels/1218918494280745101/messages/1218993573333172345`;
+      const ToEndpoint = mainChannel + '/' + idLastMessage;
 
 
-      //console.log(result.embeds[0].fields.at(0))
+      if (result.embeds[0].fields[2].value.indexOf(`<@${req.body.member.user.id}>`) !== -1) {
 
-      result.embeds[0].fields.push({name: '', value: `<@${req.body.member.user.id}>`}),
+        result.embeds[0].fields[2].value = result.embeds[0].fields[2].value.replace(`<@${req.body.member.user.id}>`, "")
 
-          await DiscordRequest(ToEndpoint, {
-            method: 'PATCH',
-            body: {
-              embeds: result.embeds
-            },
-          });
+
+
+        result.embeds[0].fields[2].value = result.embeds[0].fields[2].value.replace(`<@${req.body.member.user.id}>`, "del")
+        let index = result.embeds[0].fields[2].value.indexOf(`del`)
+        result.embeds[0].fields[2].value = result.embeds[0].fields[2].value.slice(index+20, result.embeds[0].fields[2].value.length)
+
+        await res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `Вы покинули очередь`,
+            // Indicates it'll be an ephemeral message
+            flags: InteractionResponseFlags.EPHEMERAL,
+          }
+        });
+
+      } else {
+
+        let currentDate = new Date();
+        let actual_time = moment(currentDate).unix()
+
+        result.embeds[0].fields[2].value += `<@${req.body.member.user.id}> <t:${actual_time}:R>\n`;
+        console.log('Такого элемента не найдено, добавлен')
+
+        await res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `Вы встали в очередь как ФТО`,
+            // Indicates it'll be an ephemeral message
+            flags: InteractionResponseFlags.EPHEMERAL,
+          }
+        });
+
+      }
+
+      await DiscordRequest(ToEndpoint, {
+        method: 'PATCH',
+        body: {
+          embeds: result.embeds
+        },
+      });
+
 
     }
 
+    if (componentId === 'take') {
+
+      const fromEndpoint = mainChannel + '/' + idLastMessage;
+
+      let first_res = await DiscordRequest(fromEndpoint, {method: 'GET'});
+
+      let result = await first_res.json();
+
+      const ToEndpoint = mainChannel + '/' + idLastMessage;
+
+      let currentDate = new Date();
+      let actual_time = moment(currentDate).unix()
+
+
+
+      if(result.embeds[0].fields[1].value.length === 0){
+        await res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `В очереди пока нет стажеров, кого вы собарлись брать?!`,
+            // Indicates it'll be an ephemeral message
+            flags: InteractionResponseFlags.EPHEMERAL,
+          }
+        });
+        return;
+      }
+
+      try {
+        result.embeds[0].fields[2].value = result.embeds[0].fields[2].value.replace(`<@${req.body.member.user.id}>`, "del")
+        let index = result.embeds[0].fields[2].value.indexOf(`del`)
+        result.embeds[0].fields[2].value = result.embeds[0].fields[2].value.slice(index+20, result.embeds[0].fields[2].value.length)
+
+        let prob = result.embeds[0].fields[1].value.split('\n')[0] // get first probation
+
+        result.embeds[0].fields[1].value = result.embeds[0].fields[1].value.replace(`<@${req.body.member.user.id}>`, "del")
+        index = result.embeds[0].fields[1].value.indexOf(prob)
+        result.embeds[0].fields[1].value = result.embeds[0].fields[1].value.slice(index+21, result.embeds[0].fields[1].value.length)
+
+
+
+
+        await res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `Вы взяли стажера ${prob.split(" ")[0]}, продуктивной смены!`,
+            // Indicates it'll be an ephemeral message
+            flags: InteractionResponseFlags.EPHEMERAL,
+          }
+        });
+      } catch (err) {
+        await res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `Сначала встаньте в очередь!`,
+            // Indicates it'll be an ephemeral message
+            flags: InteractionResponseFlags.EPHEMERAL,
+          }
+        });
+      }
+
+
+      await DiscordRequest(ToEndpoint, {
+        method: 'PATCH',
+        body: {
+          embeds: result.embeds
+        },
+      });
+    }
   }
+
+
 
 
   if (type === InteractionType.MESSAGE_COMPONENT) {
