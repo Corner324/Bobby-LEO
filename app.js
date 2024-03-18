@@ -73,7 +73,7 @@ app.post('/interactions', async function (req, res) {
 
       let messagesData = await messages.json();
 
-      let idLastMessage = messagesData[0].timestamp
+      let idLastMessage = messagesData[0]
 
 
 
@@ -81,8 +81,8 @@ app.post('/interactions', async function (req, res) {
       // console.log(`${currentDate.getDate()}/${currentDate.getMonth()}/${currentDate.getFullYear()}`)
       // console.log(currentDate)
 
-      console.log(moment(currentDate).unix())
-      console.log(moment(idLastMessage).unix())
+      console.log(idLastMessage.embeds[0].fields)
+
 
 
 
@@ -274,14 +274,14 @@ app.post('/interactions', async function (req, res) {
                   "**ВЗЯТЬ** – взять первого в очереди стажера, используется FTO.\n" +
                   "**ФТО** – обозначить себя доступным и получать уведомления, используется FTO.\n",
               color: 0x5664F1,
-              image: {url: "https://i.imgur.com/9PUjV76.png"},
+              //image: {url: "https://i.imgur.com/p1wzoEw.png"},
                footer: {text: 'Цель обучения — научить обходиться без учителя (Э. Хаббард).'},
               //footer: {text: 'О любых проблемах писать - corner324', icon_url: 'https://i.imgur.com/vbsliop.png'},
               author: {name: 'FTP Coordinator', icon_url: 'https://i.imgur.com/JKzAl4J.png'},
               fields: [
                 {name: '', value: ''},
-                {name: 'СТАЖЕРЫ', value: '', inline: true},
-                {name: 'НАСТАВНИКИ', value: '', inline: true},
+                {name: 'СТАЖЕРЫ', value: '\n\u200B', inline: true},
+                {name: 'НАСТАВНИКИ', value: '\n\u200B', inline: true},
               ]
             }
           ]
@@ -396,8 +396,10 @@ app.post('/interactions', async function (req, res) {
         let actual_time = moment(currentDate).unix()
 
 
-
-        result.embeds[0].fields[1].value += `<@${req.body.member.user.id}> <t:${actual_time}:R>\n`;
+        result.embeds[0].fields[1].value += `<@${req.body.member.user.id}> <t:${actual_time}:R> \n\u200B`;
+        //result.embeds[0].fields[1].value += "123 \n\u200B\n\u200B\n\u200B\n";
+        console.log('СТАЛО:')
+        console.log(`1 ${result.embeds[0].fields[1].value} 2`)
         console.log('Такого элемента не найдено, добавлен')
 
         await res.send({
@@ -446,6 +448,7 @@ app.post('/interactions', async function (req, res) {
 
 
         result.embeds[0].fields[2].value = result.embeds[0].fields[2].value.replace(`<@${req.body.member.user.id}>`, "del")
+
         let index = result.embeds[0].fields[2].value.indexOf(`del`)
         result.embeds[0].fields[2].value = result.embeds[0].fields[2].value.slice(index+20, result.embeds[0].fields[2].value.length)
 
@@ -463,7 +466,7 @@ app.post('/interactions', async function (req, res) {
         let currentDate = new Date();
         let actual_time = moment(currentDate).unix()
 
-        result.embeds[0].fields[2].value += `<@${req.body.member.user.id}> <t:${actual_time}:R>\n`;
+        result.embeds[0].fields[2].value += `<@${req.body.member.user.id}> <t:${actual_time}:R>\n\u200B`;
         console.log('Такого элемента не найдено, добавлен')
 
         await res.send({
@@ -506,7 +509,7 @@ app.post('/interactions', async function (req, res) {
         await res.send({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: {
-            content: `В очереди пока нет стажеров, кого вы собарлись брать?!`,
+            content: `В очереди пока нет стажеров, кого вы собрались брать?!`,
             // Indicates it'll be an ephemeral message
             flags: InteractionResponseFlags.EPHEMERAL,
           }
@@ -519,14 +522,15 @@ app.post('/interactions', async function (req, res) {
         let index = result.embeds[0].fields[2].value.indexOf(`del`)
         result.embeds[0].fields[2].value = result.embeds[0].fields[2].value.slice(index+20, result.embeds[0].fields[2].value.length)
 
-        let prob = result.embeds[0].fields[1].value.split('\n')[0] // get first probation
+        let prob = result.embeds[0].fields[1].value.split('\n\u200B')[0] // get first probation
 
-        result.embeds[0].fields[1].value = result.embeds[0].fields[1].value.replace(`<@${req.body.member.user.id}>`, "del")
-        index = result.embeds[0].fields[1].value.indexOf(prob)
-        result.embeds[0].fields[1].value = result.embeds[0].fields[1].value.slice(index+21, result.embeds[0].fields[1].value.length)
+        console.log('ТЕПЕРЬ:')
+        console.log(result.embeds[0].fields[1].value)
 
+        let count_probation = result.embeds[0].fields[1].value.split('\n\u200B').length
 
-
+        result.embeds[0].fields[1].value = result.embeds[0].fields[1].value.split('\n\u200B').slice(1,count_probation).join('\n\u200B')
+        //
 
         await res.send({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
