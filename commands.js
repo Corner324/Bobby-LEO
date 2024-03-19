@@ -18,64 +18,20 @@ function createCommandChoices() {
 }
 
 // Simple test command
-const TEST_COMMAND = {
-  name: 'test',
-  description: 'Basic command',
-  type: 1,
-};
-
-// Simple goods command
-const GOODS_COMMAND = {
-  name: 'goods',
-  description: 'Most goods',
-  type: 1,
-};
+// const TEST_COMMAND = {
+//   name: 'test',
+//   description: 'Basic command',
+//   type: 1,
+// };
 
 // Simple button command
-const BUTTON_COMMAND = {
-  name: 'button',
-  description: 'Create button',
-  type: 1,
-};
-
-// Simple button command
-const LIST_COMMAND = {
-  name: 'list',
-  description: 'Create list',
-  type: 1,
-};
-
-// Simple button command
-const INPUT_COMMAND = {
-  name: 'input',
-  description: 'Create input',
-  type: 1,
-};
-
-// Simple button command
-const SELECT_COMMAND = {
-  name: 'select',
-  description: 'Create list',
+const CREATE_BOT_COMMAND = {
+  name: 'create_ftp_bot',
+  description: '🤝 Создает бота с очередью для ФТП',
   type: 1,
 };
 
 
-// Command containing options
-const CHALLENGE_COMMAND = {
-  name: 'challenge',
-  description: 'Challenge to a match of rock paper scissors',
-  options: [
-    {
-      type: 3,
-      name: 'object',
-      description: 'Pick your object',
-      required: true,
-      choices: createCommandChoices(),
-    },
-  ],
-  type: 1,
-};
-
-const ALL_COMMANDS = [TEST_COMMAND, CHALLENGE_COMMAND, GOODS_COMMAND, BUTTON_COMMAND, LIST_COMMAND, SELECT_COMMAND, INPUT_COMMAND];
+const ALL_COMMANDS = [CREATE_BOT_COMMAND];
 
 InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);

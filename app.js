@@ -34,14 +34,37 @@ const activeGames = {};
  * Interactions endpoint URL where Discord will send HTTP requests
  */
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+
+function twoDigits(d) {
+  return (d < 10 ? '0' : '') + d; // добавляем "0" в начало числа, если это требуется
+}
 
 async function send_eph_message(res, message){
   await res.send({type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
     data: {
       content: message,
-      flags: InteractionResponseFlags.EPHEMERAL,
     }
   });
+
+  await sleep(300);
+
+  let mainChannel = process.env.MAIN_CHANNEL;
+
+  let messages = await DiscordRequest(mainChannel, {method: 'GET'});
+  let messagesData = await messages.json();
+  let idLastMessage = messagesData[0].id
+
+  const endpoint = mainChannel + '/' + idLastMessage;
+
+
+  await DiscordRequest(endpoint, {
+    method: 'DELETE',
+  });
+
+
+
 }
 
 app.post('/interactions', async function (req, res) {
@@ -66,45 +89,119 @@ app.post('/interactions', async function (req, res) {
     if (name === 'test') {
 
 
-      let currentDate = new Date();
+      // let currentDate = new Date();
+      //
+      //
+      // let mainChannel = '/channels/1218918494280745101/messages'
+      //
+      // let messages = await DiscordRequest(mainChannel, {method: 'GET'});
+      //
+      // let messagesData = await messages.json();
+      //
+      // let idLastMessage = messagesData[0]
+      //
+      //
+      //
+      // //console.log(req.body)
+      // // console.log(`${currentDate.getDate()}/${currentDate.getMonth()}/${currentDate.getFullYear()}`)
+      // // console.log(currentDate)
+      //
+      // console.log(idLastMessage.embeds[0].fields)
+      //
+      //
+      //
+      //
+      // let result = Math.floor(Date.parse(idLastMessage)/1000)
+      //
+      //
+      // return res.send({
+      //   type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      //   data: {
+      //     content: `<t:${moment(idLastMessage).unix()}:R>`,
+      //   },
+      // });
 
 
-      let mainChannel = '/channels/1218918494280745101/messages'
-
-      let messages = await DiscordRequest(mainChannel, {method: 'GET'});
-
-      let messagesData = await messages.json();
-
-      let idLastMessage = messagesData[0]
-
-
-
-      //console.log(req.body)
-      // console.log(`${currentDate.getDate()}/${currentDate.getMonth()}/${currentDate.getFullYear()}`)
-      // console.log(currentDate)
-
-      console.log(idLastMessage.embeds[0].fields)
-
-
-
-
-      let result = Math.floor(Date.parse(idLastMessage)/1000)
-
-
-      return res.send({
-        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-        data: {
-          content: `<t:${moment(idLastMessage).unix()}:R>`,
-        },
+      await DiscordRequest('/channels/1218918494280745101/messages/1219664117695123520', {
+        method: 'DELETE',
       });
     }
 
 
 
-    if (data.name === 'select') {
+
+    if (data.name === 'create_ftp_bot') {
       // Send a message with a button
 
 
+      await DiscordRequest(process.env.MAIN_CHANNEL, {
+        method: 'POST',
+        body: {
+          content: '',
+          // Selects are inside of action rows
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  style: 1,
+                  label: `СТАЖЕР`,
+                  custom_id: `queue`,
+                  disabled: false,
+                  emoji: {
+                    id: null,
+                    name: `👶🏻`
+                  },
+                  type: 2
+                },
+                {
+                  style: 2,
+                  label: `ВЗЯТЬ`,
+                  custom_id: `take`,
+                  disabled: false,
+                  emoji: {
+                    id: null,
+                    name: `🤝`
+                  },
+                  type: 2
+                },
+                {
+                  style: 3,
+                  label: `ФТО`,
+                  custom_id: `active`,
+                  disabled: false,
+                  emoji: {
+                    id: null,
+                    name: `👴🏻`
+                  },
+                  type: 2
+                }
+              ]
+            }
+          ],
+          embeds: [
+            {
+              type: "rich",
+              title: `FIELD TRAINING PROGRAM QUEUE`,
+              description: "Система очереди для стажеров и их наставников\n" +
+                "\n" +
+                "**СТАЖЕР** – встать/выйти из очереди, используется стажерами.\n" +
+                "**ВЗЯТЬ** – взять первого в очереди стажера, используется ФТО.\n" +
+                "**ФТО** – встать/выйти из очереди, используется ФТО.\n",
+              color: 0x5664F1,
+              image: {url: "https://i.imgur.com/qFPguLQ.png"},
+              footer: {text: 'Цель обучения — научить обходиться без учителя (Э. Хаббард).'},
+              //footer: {text: 'О любых проблемах писать - corner324', icon_url: 'https://i.imgur.com/vbsliop.png'},
+              author: {name: 'Developed by Corner', icon_url: 'https://i.imgur.com/YPAab26.png'},
+              fields: [
+                {name: '', value: ''},
+                {name: 'СТАЖЕРЫ', value: '\n\u200B', inline: true},
+                {name: 'НАСТАВНИКИ', value: '\n\u200B', inline: true},
+              ]
+            }
+          ]
+        },
+      });
 
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -192,7 +289,7 @@ app.post('/interactions', async function (req, res) {
     // user who clicked button
     const userId = req.body.member.user.id;
 
-    let mainChannel = '/channels/1218918494280745101/messages'
+    let mainChannel = process.env.MAIN_CHANNEL;
 
     let messages = await DiscordRequest(mainChannel, {method: 'GET'});
     let messagesData = await messages.json();
@@ -217,12 +314,8 @@ app.post('/interactions', async function (req, res) {
         let index = probations.indexOf(`del`)
         probations = probations.slice(index+20, probations.length)
 
-        await res.send({type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            content: `Вы покинули очередь`,
-            flags: InteractionResponseFlags.EPHEMERAL,
-          }
-        });
+        await send_eph_message(res, `Вы покинули очередь`);
+
 
       } else {
 
@@ -290,7 +383,7 @@ app.post('/interactions', async function (req, res) {
         return;
       }
 
-      let endpointLogs = '/channels/1219647959591817237/messages'
+      let endpointLogs = process.env.LOG_CHANNEL;
 
 
       try {
@@ -324,13 +417,13 @@ app.post('/interactions', async function (req, res) {
       let embed =  [
         {
           type: "rich",
-          title: `📋 Patrol Log - ${new Date().getUTCDate()}.${new Date().getUTCMonth()}.${new Date().getFullYear()} ${new Date().getUTCHours()}:${new Date().getUTCMinutes()}`,
+          title: `📋 Patrol Log - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${new Date().getUTCHours()+3}:${new Date().getUTCMinutes()}`,
           description: `Отчет о патруле со стажером\n\u200BПатруль был начат: <t:${actual_time}:R>`,
           color: 0x5664F1,
           footer: {text: 'О любых проблемах писать - corner324', icon_url: 'https://i.imgur.com/vbsliop.png'},
           fields: [
             {name: '', value: ''},
-            {name: 'Стажер', value: `<@${prob.split(" ")[0].replace('<@', "").replace(">","")}>`, inline: true},
+            {name: 'Стажер', value: `${prob.split(" ")[0]}`, inline: true},
             {name: 'Наставник', value: `<@${req.body.member.user.id}>`, inline: true},
             {name: '', value: ``, inline: false},
           ]
