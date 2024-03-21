@@ -18,11 +18,11 @@ function createCommandChoices() {
 }
 
 // Simple test command
-// const TEST_COMMAND = {
-//   name: 'test',
-//   description: 'Basic command',
-//   type: 1,
-// };
+const TEST_COMMAND = {
+  name: 'test',
+  description: 'Basic command',
+  type: 1,
+};
 
 // Simple button command
 const CREATE_BOT_COMMAND = {
@@ -32,6 +32,6 @@ const CREATE_BOT_COMMAND = {
 };
 
 
-const ALL_COMMANDS = [CREATE_BOT_COMMAND];
+const ALL_COMMANDS = [CREATE_BOT_COMMAND, TEST_COMMAND];
 
 InstallGlobalCommands(process.env.APP_ID, ALL_COMMANDS);

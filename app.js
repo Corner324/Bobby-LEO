@@ -78,6 +78,8 @@ app.post('/interactions', async function (req, res) {
     return res.send({ type: InteractionResponseType.PONG });
   }
 
+
+
   /**
    * Handle slash command requests
    * See https://discord.com/developers/docs/interactions/application-commands#slash-commands
@@ -88,43 +90,13 @@ app.post('/interactions', async function (req, res) {
     // "test" command
     if (name === 'test') {
 
-
-      // let currentDate = new Date();
-      //
-      //
-      // let mainChannel = '/channels/1218918494280745101/messages'
-      //
-      // let messages = await DiscordRequest(mainChannel, {method: 'GET'});
-      //
-      // let messagesData = await messages.json();
-      //
-      // let idLastMessage = messagesData[0]
-      //
-      //
-      //
-      // //console.log(req.body)
-      // // console.log(`${currentDate.getDate()}/${currentDate.getMonth()}/${currentDate.getFullYear()}`)
-      // // console.log(currentDate)
-      //
-      // console.log(idLastMessage.embeds[0].fields)
-      //
-      //
-      //
-      //
-      // let result = Math.floor(Date.parse(idLastMessage)/1000)
-      //
-      //
-      // return res.send({
-      //   type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-      //   data: {
-      //     content: `<t:${moment(idLastMessage).unix()}:R>`,
-      //   },
-      // });
-
-
-      await DiscordRequest('/channels/1218918494280745101/messages/1219664117695123520', {
-        method: 'DELETE',
+      return res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+          content: `Hello World!`,
+        },
       });
+
     }
 
 
@@ -192,7 +164,7 @@ app.post('/interactions', async function (req, res) {
               image: {url: "https://i.imgur.com/qFPguLQ.png"},
               footer: {text: 'Цель обучения — научить обходиться без учителя (Э. Хаббард).'},
               //footer: {text: 'О любых проблемах писать - corner324', icon_url: 'https://i.imgur.com/vbsliop.png'},
-              author: {name: 'Developed by Corner', icon_url: 'https://i.imgur.com/YPAab26.png'},
+              author: {name: 'Developed by Corner', icon_url: 'https://i.imgur.com/LQFHAVJ.png'},
               fields: [
                 {name: '', value: ''},
                 {name: 'СТАЖЕРЫ', value: '\n\u200B', inline: true},
