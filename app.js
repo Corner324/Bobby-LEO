@@ -37,9 +37,12 @@ const activeGames = {};
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function loop(){
-  while(true){
-    await setTimeout(()=>{console.log('OK!')}, 5000)
-  }
+
+    while (true){
+      await sleep(5000);
+      console.log('OK!')
+    }
+
 }
 
 function twoDigits(d) {
