@@ -39,8 +39,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function loop(){
 
     while (true){
-      await sleep(5000);
-      console.log(`Server Working - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${new Date().getUTCHours()+3}:${new Date().getUTCMinutes()}`)
+      await sleep(5 * 60 * 1000);
+
+
+      await DiscordRequest("/channels/1220385577724022814/messages", {
+        method: 'POST',
+        body: {
+          content: `Server Working - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${new Date().getUTCHours()+3}:${new Date().getUTCMinutes()}`
+        },
+      });
+
+     // console.log(`Server Working - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${new Date().getUTCHours()+3}:${new Date().getUTCMinutes()}`)
     }
 
 }
