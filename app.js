@@ -36,6 +36,11 @@ const activeGames = {};
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+async function loop(){
+  while(true){
+    await setTimeout(()=>{console.log('OK!')}, 5000)
+  }
+}
 
 function twoDigits(d) {
   return (d < 10 ? '0' : '') + d; // добавляем "0" в начало числа, если это требуется
@@ -588,6 +593,7 @@ app.post('/interactions', async function (req, res) {
 
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log('Listening on port', PORT);
+  await loop();
 });
