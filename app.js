@@ -40,7 +40,7 @@ async function loop(){
 
     while (true){
       await sleep(5000);
-      console.log('OK!')
+      console.log(`Server Working - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${new Date().getUTCHours()+3}:${new Date().getUTCMinutes()}`)
     }
 
 }
