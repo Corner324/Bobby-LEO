@@ -36,7 +36,7 @@ const activeGames = {};
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-
+let prob_list = []
 
 async function check_more_hour(){
   let messages = await DiscordRequest(process.env.MAIN_CHANNEL, {method: 'GET'});
@@ -48,32 +48,58 @@ async function check_more_hour(){
   let last_message = await DiscordRequest(endpoint, {method: 'GET'});
   let last_message_data = await last_message.json();
 
-  let probationons = last_message_data.body.embeds[0].fields[0].value.split('\n\u200B')
+  console.log(last_message_data.embeds[0].fields[1].value.split('\n\u200B'))
 
-  for (let i = 0; i < probationons.length; i++) {
-    let time_probation = probationons[i].split(' ')[1].replace('<t:',"").replace(':R>','');
-    let actual_time = moment(new Date()).unix();
+  let probat
 
-    if(new Date(((actual_time-time_probation) * 1000)).getUTCHours() > 1){ // Точно сработает?
+  if(last_message_data.embeds[0].fields[1].value){
+    let probationons = last_message_data.embeds[0].fields[1].value.split('\n\u200B')
+
+    for (let i = 0; i < probationons.length-1; i++) {
+      console.log('Вот тут' + probationons[i].split(' '))
+      let time_probation = probationons[i].split(' ')[1].replace('<t:',"").replace(':R>','');
+      probat = probationons[i].split(' ')[0].replace('<@', "").replace(">","")
+      let actual_time = moment(new Date()).unix();
+
+      if(new Date(((actual_time-time_probation) * 1000)).getUTCMinutes() > 60){ // Точно сработает?
         probationons.splice(i, 1)
-      console.log('СТАЖЕР УДАЛЕН!')
+        console.log('СТАЖЕР УДАЛЕН!')
+      }
     }
+
+    last_message_data.embeds[0].fields[1].value = probationons.join('\n\u200B');
+
+    await DiscordRequest(endpoint, {
+      method: 'PATCH',
+      body: {
+        embeds: [last_message_data.embeds[0]]
+      },
+    });
+
+
+    // await sleep(3000);
+    //
+    // for (const elem of prob_list) {
+    //   if(elem.id === probat){
+    //       await elem.member.send({type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+    //       data: {
+    //         flags: InteractionResponseFlags.EPHEMERAL,
+    //         content: 'Прошел 1 час и вы были исключены из очереди, если вы все ещё ищите наставника, то можете вставь в очередь вновь. ',
+    //       }
+    //     });
+    //   }
+    //   await sleep(3000);
+    // }
   }
 
 
-  await DiscordRequest(endpoint, {
-    method: 'PATCH',
-    body: {
-      embeds: [last_message_data.embeds[0].fields[0].value = probationons.join('\n\u200B')]
-    },
-  });
 
 }
 
 async function loop(){
 
     while (true){
-      await sleep(5 * 60 * 1000);
+      await sleep(10 * 60 * 1000);
 
 
       await DiscordRequest("/channels/1220385577724022814/messages", {
@@ -372,8 +398,6 @@ app.post('/interactions', async function (req, res) {
         let patrol_time = new Date(time_unix * 1000);
 
 
-
-
         send_eph_message(res, `## 📋 Патруль успешно завершен!\n\u200B
         **Стажер:** ${messagesData.embeds[0].fields[1].value}
         **Генератор отчетов:** [Ссылка](https://mdc.gtaw.me/generators/view/103)
@@ -394,6 +418,7 @@ app.post('/interactions', async function (req, res) {
           for (let i = 0; i < probations_list.length; i++) {
             if(probations_list[i].indexOf(`<@${req.body.member.user.id}>`) !== -1){ // Есть такой ФТО
               probations_list.splice(i, 1);
+              prob_list.splice(i, 1);
             }
           }
 
@@ -410,6 +435,9 @@ app.post('/interactions', async function (req, res) {
         } else {
 
           probations += `<@${req.body.member.user.id}> <t:${actual_time}:R> \n\u200B`;
+          prob_list.push({id: req.body.member.user.id, member: res})
+          console.log('ТУТ!')
+          console.log(prob_list)
 
           console.log('Такого элемента не найдено, добавлен')
 
@@ -419,6 +447,8 @@ app.post('/interactions', async function (req, res) {
         // Обновляем last_message_data с новыми значениями probations и trainers
         last_message_data.embeds[0].fields[1].value = probations;
         last_message_data.embeds[0].fields[2].value = trainers;
+
+
 
         await DiscordRequest(endpoint, {
           method: 'PATCH',
