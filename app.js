@@ -36,6 +36,40 @@ const activeGames = {};
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+
+
+async function check_more_hour(){
+  let messages = await DiscordRequest(process.env.MAIN_CHANNEL, {method: 'GET'});
+  let messagesData = await messages.json();
+  let idLastMessage = messagesData[0].id
+
+  const endpoint = process.env.MAIN_CHANNEL + '/' + idLastMessage;
+
+  let last_message = await DiscordRequest(endpoint, {method: 'GET'});
+  let last_message_data = await last_message.json();
+
+  let probationons = last_message_data.body.embeds[0].fields[0].value.split('\n\u200B')
+
+  for (let i = 0; i < probationons.length; i++) {
+    let time_probation = probationons[i].split(' ')[1].replace('<t:',"").replace(':R>','');
+    let actual_time = moment(new Date()).unix();
+
+    if(new Date(((actual_time-time_probation) * 1000)).getUTCHours() > 1){ // Точно сработает?
+        probationons.splice(i, 1)
+      console.log('СТАЖЕР УДАЛЕН!')
+    }
+  }
+
+
+  await DiscordRequest(endpoint, {
+    method: 'PATCH',
+    body: {
+      embeds: [last_message_data.embeds[0].fields[0].value = probationons.join('\n\u200B')]
+    },
+  });
+
+}
+
 async function loop(){
 
     while (true){
@@ -45,9 +79,11 @@ async function loop(){
       await DiscordRequest("/channels/1220385577724022814/messages", {
         method: 'POST',
         body: {
-          content: `Server Working - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${new Date().getUTCHours()+3}:${new Date().getUTCMinutes()}`
+          content: `Server Working - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${twoDigits(new Date().getUTCHours()+3)}:${twoDigits(new Date().getUTCMinutes())}`
         },
       });
+
+      await check_more_hour()
 
      // console.log(`Server Working - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${new Date().getUTCHours()+3}:${new Date().getUTCMinutes()}`)
     }
@@ -75,6 +111,8 @@ async function send_eph_message(res, message){
   let idLastMessage = messagesData[0].id
 
   const endpoint = mainChannel + '/' + idLastMessage;
+
+
 
 
   // await DiscordRequest(endpoint, {
