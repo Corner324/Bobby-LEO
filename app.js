@@ -48,7 +48,7 @@ async function check_more_hour(){
   let last_message = await DiscordRequest(endpoint, {method: 'GET'});
   let last_message_data = await last_message.json();
 
-  console.log(last_message_data.embeds[0].fields[1].value.split('\n\u200B'))
+  //console.log(last_message_data.embeds[0].fields[1].value.split('\n\u200B'))
 
   let probat;
 
@@ -59,10 +59,10 @@ async function check_more_hour(){
       let time_probation = probationons[i].split(' ')[1].replace('<t:',"").replace(':R>','');
       probat = probationons[i].split(' ')[0].replace('<@', "").replace(">","")
       let actual_time = moment(new Date()).unix()// + 60 * 60 * 3;
-      console.log('Time left - ', ((actual_time-time_probation) / 60 ))
+      //console.log('Time left - ', ((actual_time-time_probation) / 60 ))
       if(((actual_time-time_probation) / 60 ) > 60){ 
         probationons.splice(i, 1)
-        console.log('СТАЖЕР УДАЛЕН!')
+        console.log(`СТАЖЕР УДАЛЕН!`)
       }
     }
 
@@ -391,9 +391,9 @@ app.post('/interactions', async function (req, res) {
         let patrol_log = await DiscordRequest(process.env.LOG_CHANNEL + '/' + req.body.message.id, {method: 'GET'});
         let messagesData = await patrol_log.json();
 
-        console.log(messagesData.embeds[0].description.split(' '))
+        //console.log(messagesData.embeds[0].description.split(' '))
 
-        let start_patrol_time = Number(messagesData.embeds[0].description.split(' ')[7].replace('<t:',"").replace(':R>',''))
+        //let start_patrol_time = Number(messagesData.embeds[0].description.split(' ')[7].replace('<t:',"").replace(':R>',''))
         let time_unix = (moment(new Date()).unix() - start_patrol_time)
         let patrol_time = new Date(time_unix * 1000);
 
@@ -436,10 +436,10 @@ app.post('/interactions', async function (req, res) {
 
           probations += `<@${req.body.member.user.id}> <t:${actual_time}:R> \n\u200B`;
           prob_list.push({id: req.body.member.user.id, member: res})
-          console.log('ТУТ!')
-          console.log(prob_list)
+          //console.log('ТУТ!')
+          //console.log(prob_list)
 
-          console.log('Такого элемента не найдено, добавлен')
+          console.log(`Стажер ${req.body.member.user.username} добавлен в очередь`)
 
           await send_eph_message(res, `Вы встали в очередь как стажер`);
         }
@@ -479,7 +479,7 @@ app.post('/interactions', async function (req, res) {
           // trainers = trainers.replace(`<@${req.body.member.user.id}>`, "del")
           // let index = trainers.indexOf(`del`)
           // trainers = trainers.slice(index+20, trainers.length)
-
+ 
           await send_eph_message(res, `Вы покинули очередь`);
 
 
