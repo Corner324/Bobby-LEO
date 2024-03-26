@@ -381,6 +381,7 @@ app.post('/interactions', async function (req, res) {
           body: {
             embeds: [
               {
+                ...messagesData.embeds[0], // сохраняем все свойства из исходного embed
                 description: messagesData.embeds[0].description + `**Продолжительность:** ${twoDigits(patrol_time.getUTCHours())}:${twoDigits(patrol_time.getUTCMinutes())}\n\u200B`
               }
             ]
