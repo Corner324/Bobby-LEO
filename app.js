@@ -50,18 +50,17 @@ async function check_more_hour(){
 
   console.log(last_message_data.embeds[0].fields[1].value.split('\n\u200B'))
 
-  let probat
+  let probat;
 
   if(last_message_data.embeds[0].fields[1].value){
     let probationons = last_message_data.embeds[0].fields[1].value.split('\n\u200B')
 
     for (let i = 0; i < probationons.length-1; i++) {
-      console.log('Вот тут' + probationons[i].split(' '))
       let time_probation = probationons[i].split(' ')[1].replace('<t:',"").replace(':R>','');
       probat = probationons[i].split(' ')[0].replace('<@', "").replace(">","")
-      let actual_time = moment(new Date()).unix();
-
-      if(new Date(((actual_time-time_probation) * 1000)).getUTCMinutes() > 60){ // Точно сработает?
+      let actual_time = moment(new Date()).unix()// + 60 * 60 * 3;
+      console.log('Time left - ', ((actual_time-time_probation) / 60 ))
+      if(((actual_time-time_probation) / 60 ) > 60){ 
         probationons.splice(i, 1)
         console.log('СТАЖЕР УДАЛЕН!')
       }
@@ -99,7 +98,7 @@ async function check_more_hour(){
 async function loop(){
 
     while (true){
-      await sleep(10 * 60 * 1000);
+      await sleep(1 * 60 * 1000);
 
 
       await DiscordRequest("/channels/1220385577724022814/messages", {
