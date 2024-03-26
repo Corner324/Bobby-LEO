@@ -379,7 +379,11 @@ app.post('/interactions', async function (req, res) {
         await DiscordRequest(process.env.LOG_CHANNEL + '/' + req.body.message.id, {
           method: 'PATCH',
           body: {
-            content: messagesData.content + `**Продолжительность:** ${twoDigits(patrol_time.getUTCHours())}:${twoDigits(patrol_time.getUTCMinutes())}\n\u200B`
+            embeds: [
+              {
+                description: messagesData.embeds[0].description + `**Продолжительность:** ${twoDigits(patrol_time.getUTCHours())}:${twoDigits(patrol_time.getUTCMinutes())}\n\u200B`
+              }
+            ]
           },
         });
 
@@ -540,7 +544,7 @@ app.post('/interactions', async function (req, res) {
           {
             type: "rich",
             title: `📋 Patrol Log - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${twoDigits(new Date().getUTCHours()+3)}:${twoDigits(new Date().getUTCMinutes())}`,
-            description: `Отчет о патруле со стажером\n\u200BПатруль был начат: <t:${actual_time}:R>`,
+            description: `Отчет о патруле со стажером\n\u200BПатруль был начат: <t:${actual_time}:R>\n\u200B`,
             color: 0x5664F1,
             footer: {text: 'О любых проблемах писать - corner324', icon_url: 'https://i.imgur.com/vbsliop.png'},
             fields: [
