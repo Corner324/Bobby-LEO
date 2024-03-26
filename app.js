@@ -91,7 +91,7 @@ async function check_more_hour(){
 async function loop(){
 
     while (true){
-      await sleep(1 * 60 * 1000);
+      await sleep(10 * 60 * 1000);
 
       await DiscordRequest(process.env.DEV_CHANNEL, {
         method: 'POST',
@@ -376,6 +376,13 @@ app.post('/interactions', async function (req, res) {
         let patrol_time = new Date(time_unix * 1000);
 
 
+        await DiscordRequest(process.env.LOG_CHANNEL + '/' + req.body.message.id, {
+          method: 'PATCH',
+          body: {
+            content: messagesData.content + `**Продолжительность:** ${twoDigits(patrol_time.getUTCHours())}:${twoDigits(patrol_time.getUTCMinutes())}\n\u200B`
+          },
+        });
+
         await send_eph_message(res, `## 📋 Патруль успешно завершен!\n\u200B
         **Стажер:** ${messagesData.embeds[0].fields[1].value}
         **Генератор отчетов:** [Ссылка](https://mdc.gtaw.me/generators/view/103)
@@ -532,7 +539,7 @@ app.post('/interactions', async function (req, res) {
         let embed =  [
           {
             type: "rich",
-            title: `📋 Patrol Log - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${new Date().getUTCHours()+3}:${new Date().getUTCMinutes()}`,
+            title: `📋 Patrol Log - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${twoDigits(new Date().getUTCHours()+3)}:${twoDigits(new Date().getUTCMinutes())}`,
             description: `Отчет о патруле со стажером\n\u200BПатруль был начат: <t:${actual_time}:R>`,
             color: 0x5664F1,
             footer: {text: 'О любых проблемах писать - corner324', icon_url: 'https://i.imgur.com/vbsliop.png'},
