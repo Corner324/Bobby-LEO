@@ -7,18 +7,8 @@ import {
   MessageComponentTypes,
   ButtonStyleTypes,
 } from 'discord-interactions';
-import { VerifyDiscordRequest, getRandomEmoji, DiscordRequest } from './utils.js';
-import { getShuffledOptions, getResult } from './game.js';
-
+import { VerifyDiscordRequest, DiscordRequest } from './utils.js';
 import moment from 'moment';
-
-
-/*
-  TODO: Кик через время []
-  Дополнительный лог []
-
- */
-
 
 // Create an express app
 const app = express();
@@ -36,61 +26,64 @@ const activeGames = {};
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+function twoDigits(d) {
+  return (d < 10 ? '0' : '') + d;
+}
+
 let prob_list = []
 
 async function check_more_hour(){
-  let messages = await DiscordRequest(process.env.MAIN_CHANNEL, {method: 'GET'});
-  let messagesData = await messages.json();
-  let idLastMessage = messagesData[0].id
+  try {
+    let messages = await DiscordRequest(process.env.MAIN_CHANNEL, {method: 'GET'});
+    let messagesData = await messages.json();
+    let idLastMessage = messagesData[0].id
 
-  const endpoint = process.env.MAIN_CHANNEL + '/' + idLastMessage;
+    const endpointToLastMessage = process.env.MAIN_CHANNEL + '/' + idLastMessage;
 
-  let last_message = await DiscordRequest(endpoint, {method: 'GET'});
-  let last_message_data = await last_message.json();
+    let last_message = await DiscordRequest(endpointToLastMessage, {method: 'GET'});
+    let last_message_data = await last_message.json();
 
-  //console.log(last_message_data.embeds[0].fields[1].value.split('\n\u200B'))
+    let probat;
 
-  let probat;
+    let probations_str = last_message_data.embeds[0].fields[1].value;
 
-  if(last_message_data.embeds[0].fields[1].value){
-    let probationons = last_message_data.embeds[0].fields[1].value.split('\n\u200B')
+    if(probations_str){
+      let probations_list = probations_str.split('\n\u200B')
 
-    for (let i = 0; i < probationons.length-1; i++) {
-      let time_probation = probationons[i].split(' ')[1].replace('<t:',"").replace(':R>','');
-      probat = probationons[i].split(' ')[0].replace('<@', "").replace(">","")
-      let actual_time = moment(new Date()).unix()// + 60 * 60 * 3;
-      //console.log('Time left - ', ((actual_time-time_probation) / 60 ))
-      if(((actual_time-time_probation) / 60 ) > 60){ 
-        probationons.splice(i, 1)
-        console.log(`СТАЖЕР УДАЛЕН!`)
+      for (let i = 0; i < probations_list.length-1; i++) {
+
+        let time_probation = probations_list[i].split(' ')[1].replace('<t:',"").replace(':R>','');
+        probat = probations_list[i].split(' ')[0].replace('<@', "").replace(">","")
+        let actual_time = moment(new Date()).unix()// + 60 * 60 * 3;
+        //console.log('Time left - ', ((actual_time-time_probation) / 60 ))
+
+        if(((actual_time-time_probation) / 60 ) > 60){
+          probations_list.splice(i, 1)
+          console.log(`Стажер кикнут!`)
+        }
       }
+
+      last_message_data.embeds[0].fields[1].value = probations_list.join('\n\u200B');
+
+      await DiscordRequest(endpointToLastMessage, {
+        method: 'PATCH',
+        body: {
+          embeds: [last_message_data.embeds[0]]
+        },
+      });
+
     }
+  }
+  catch (e){
+    console.log(e)
 
-    last_message_data.embeds[0].fields[1].value = probationons.join('\n\u200B');
-
-    await DiscordRequest(endpoint, {
-      method: 'PATCH',
+    await DiscordRequest(process.env.DEV_CHANNEL, {
+      method: 'POST',
       body: {
-        embeds: [last_message_data.embeds[0]]
+        content: e
       },
     });
-
-
-    // await sleep(3000);
-    //
-    // for (const elem of prob_list) {
-    //   if(elem.id === probat){
-    //       await elem.member.send({type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-    //       data: {
-    //         flags: InteractionResponseFlags.EPHEMERAL,
-    //         content: 'Прошел 1 час и вы были исключены из очереди, если вы все ещё ищите наставника, то можете вставь в очередь вновь. ',
-    //       }
-    //     });
-    //   }
-    //   await sleep(3000);
-    // }
   }
-
 
 
 }
@@ -100,8 +93,7 @@ async function loop(){
     while (true){
       await sleep(1 * 60 * 1000);
 
-
-      await DiscordRequest("/channels/1220385577724022814/messages", {
+      await DiscordRequest(process.env.DEV_CHANNEL, {
         method: 'POST',
         body: {
           content: `Server Working - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${twoDigits(new Date().getUTCHours()+3)}:${twoDigits(new Date().getUTCMinutes())}`
@@ -110,14 +102,9 @@ async function loop(){
 
       await check_more_hour()
 
-     // console.log(`Server Working - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${new Date().getUTCHours()+3}:${new Date().getUTCMinutes()}`)
     }
-
 }
 
-function twoDigits(d) {
-  return (d < 10 ? '0' : '') + d; // добавляем "0" в начало числа, если это требуется
-}
 
 async function send_eph_message(res, message){
   await res.send({type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -127,7 +114,6 @@ async function send_eph_message(res, message){
     }
   });
 
- // await sleep(300);
 
   let mainChannel = process.env.MAIN_CHANNEL;
 
@@ -138,17 +124,12 @@ async function send_eph_message(res, message){
   const endpoint = mainChannel + '/' + idLastMessage;
 
 
-
-
   // await DiscordRequest(endpoint, {
   //   method: 'DELETE',
   // });
 
 }
 
-app.get('/test', async function (req, res) {
-  res.send('OK!')
-})
 
 app.post('/interactions', async function (req, res) {
   // Interaction type and data
@@ -160,7 +141,6 @@ app.post('/interactions', async function (req, res) {
   if (type === InteractionType.PING) {
     return res.send({ type: InteractionResponseType.PONG });
   }
-
 
   /**
    * Handle slash command requests
@@ -185,7 +165,6 @@ app.post('/interactions', async function (req, res) {
 
     if (data.name === 'create_ftp_bot') {
       // Send a message with a button
-
 
       await DiscordRequest(process.env.MAIN_CHANNEL, {
         method: 'POST',
@@ -237,6 +216,7 @@ app.post('/interactions', async function (req, res) {
               type: "rich",
               title: `FIELD TRAINING PROGRAM QUEUE`,
               description: "Система очереди для стажеров и их наставников\n" +
+                "Автокик стажера из очереди через 1 час ожидания\n" +
                 "\n" +
                 "**СТАЖЕР** – встать/выйти из очереди, используется стажерами.\n" +
                 "**ВЗЯТЬ** – взять первого в очереди стажера, используется ФТО.\n" +
@@ -331,7 +311,6 @@ app.post('/interactions', async function (req, res) {
 
 
 
-
   /**
    * Handle requests from interactive components
    * See https://discord.com/developers/docs/interactions/message-components#responding-to-a-component-interaction
@@ -361,7 +340,6 @@ app.post('/interactions', async function (req, res) {
 
 
       if (componentId === 'finish_patrol') {
-
 
         await DiscordRequest(process.env.LOG_CHANNEL + '/' + req.body.message.id, {
           method: 'PATCH',
@@ -393,19 +371,17 @@ app.post('/interactions', async function (req, res) {
 
         //console.log(messagesData.embeds[0].description.split(' '))
 
-        //let start_patrol_time = Number(messagesData.embeds[0].description.split(' ')[7].replace('<t:',"").replace(':R>',''))
+        let start_patrol_time = Number(messagesData.embeds[0].description.split(' ')[7].replace('<t:',"").replace(':R>',''))
         let time_unix = (moment(new Date()).unix() - start_patrol_time)
         let patrol_time = new Date(time_unix * 1000);
 
 
-        send_eph_message(res, `## 📋 Патруль успешно завершен!\n\u200B
+        await send_eph_message(res, `## 📋 Патруль успешно завершен!\n\u200B
         **Стажер:** ${messagesData.embeds[0].fields[1].value}
         **Генератор отчетов:** [Ссылка](https://mdc.gtaw.me/generators/view/103)
         **FTP секция форума:** [Ссылка](https://lspd.gtaw.me/viewforum.php?f=947&sid=e524c358347a390926c3da383c039b7d)
-        **Время начала патруля:** ${twoDigits(new Date(start_patrol_time * 1000).getUTCHours()+3)}:${twoDigits(new Date(start_patrol_time * 1000).getUTCMinutes())}
+        **Время начала патруля:** ${twoDigits(new Date(start_patrol_time * 1000).getUTCHours() + 3)}:${twoDigits(new Date(start_patrol_time * 1000).getUTCMinutes())}
         **Продолжительность:** ${twoDigits(patrol_time.getUTCHours())}:${twoDigits(patrol_time.getUTCMinutes())}`)
-
-
 
       }
 
@@ -424,10 +400,8 @@ app.post('/interactions', async function (req, res) {
 
           probations = probations_list.join('\n\u200B')
 
-          console.log('В ОЧЕРЕДИ ЕСТЬ СТАЖЕР ТАКОЙ, УДАЛЯЕМ')
-          // probations = probations.replace(`<@${req.body.member.user.id}>`, "del")
-          // let index = probations.indexOf(`del`)
-          // probations = probations.slice(index+20, probations.length)
+          console.log(`Стажер ${req.body.member.user.username} самостоятельно вышел из очереди`)
+
 
           await send_eph_message(res, `Вы покинули очередь`);
 
@@ -436,8 +410,6 @@ app.post('/interactions', async function (req, res) {
 
           probations += `<@${req.body.member.user.id}> <t:${actual_time}:R> \n\u200B`;
           prob_list.push({id: req.body.member.user.id, member: res})
-          //console.log('ТУТ!')
-          //console.log(prob_list)
 
           console.log(`Стажер ${req.body.member.user.username} добавлен в очередь`)
 
@@ -447,7 +419,6 @@ app.post('/interactions', async function (req, res) {
         // Обновляем last_message_data с новыми значениями probations и trainers
         last_message_data.embeds[0].fields[1].value = probations;
         last_message_data.embeds[0].fields[2].value = trainers;
-
 
 
         await DiscordRequest(endpoint, {
@@ -479,14 +450,14 @@ app.post('/interactions', async function (req, res) {
           // trainers = trainers.replace(`<@${req.body.member.user.id}>`, "del")
           // let index = trainers.indexOf(`del`)
           // trainers = trainers.slice(index+20, trainers.length)
- 
+          console.log(`ФТО ${req.body.member.user.username} самостоятельно вышел из очереди`)
           await send_eph_message(res, `Вы покинули очередь`);
 
 
         } else {
 
           trainers += `<@${req.body.member.user.id}> <t:${actual_time}:R>\n\u200B`;
-          console.log('Такого элемента не найдено, добавлен')
+          console.log(`ФТО ${req.body.member.user.username} добавлен в очередь`)
 
           await send_eph_message(res, `Вы встали в очередь как ФТО`);
 
