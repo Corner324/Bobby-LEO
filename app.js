@@ -34,16 +34,14 @@ let prob_list = []
 
 async function check_more_hour(){
   try {
-    let messages = await DiscordRequest(process.env.MAIN_CHANNEL, {method: 'GET'});
+    let messages = await DiscordRequest(process.env.MAIN_CHANNEL_PD, {method: 'GET'});
     let messagesData = await messages.json();
     let idLastMessage = messagesData[0].id
 
-    const endpointToLastMessage = process.env.MAIN_CHANNEL + '/' + idLastMessage;
+    const endpointToLastMessage = process.env.MAIN_CHANNEL_PD + '/' + idLastMessage;
 
     let last_message = await DiscordRequest(endpointToLastMessage, {method: 'GET'});
     let last_message_data = await last_message.json();
-
-    let probat;
 
     let probations_str = last_message_data.embeds[0].fields[1].value;
 
@@ -115,7 +113,7 @@ async function send_eph_message(res, message){
   });
 
 
-  let mainChannel = process.env.MAIN_CHANNEL;
+  let mainChannel = process.env.MAIN_CHANNEL_PD;
 
   let messages = await DiscordRequest(mainChannel, {method: 'GET'});
   let messagesData = await messages.json();
@@ -166,7 +164,7 @@ app.post('/interactions', async function (req, res) {
     if (data.name === 'create_ftp_bot') {
       // Send a message with a button
 
-      await DiscordRequest(process.env.MAIN_CHANNEL, {
+      await DiscordRequest(process.env.MAIN_CHANNEL_PD, {
         method: 'POST',
         body: {
           content: '',
@@ -322,7 +320,7 @@ app.post('/interactions', async function (req, res) {
       // user who clicked button
       const userId = req.body.member.user.id;
 
-      let mainChannel = process.env.MAIN_CHANNEL;
+      let mainChannel = process.env.MAIN_CHANNEL_PD;
 
       let messages = await DiscordRequest(mainChannel, {method: 'GET'});
       let messagesData = await messages.json();
@@ -341,7 +339,7 @@ app.post('/interactions', async function (req, res) {
 
       if (componentId === 'finish_patrol') {
 
-        await DiscordRequest(process.env.LOG_CHANNEL + '/' + req.body.message.id, {
+        await DiscordRequest(process.env.LOG_CHANNEL_PD + '/' + req.body.message.id, {
           method: 'PATCH',
           body: {
             components: [
@@ -366,7 +364,7 @@ app.post('/interactions', async function (req, res) {
           },
         });
 
-        let patrol_log = await DiscordRequest(process.env.LOG_CHANNEL + '/' + req.body.message.id, {method: 'GET'});
+        let patrol_log = await DiscordRequest(process.env.LOG_CHANNEL_PD + '/' + req.body.message.id, {method: 'GET'});
         let messagesData = await patrol_log.json();
 
         //console.log(messagesData.embeds[0].description.split(' '))
@@ -376,7 +374,7 @@ app.post('/interactions', async function (req, res) {
         let patrol_time = new Date(time_unix * 1000);
 
 
-        await DiscordRequest(process.env.LOG_CHANNEL + '/' + req.body.message.id, {
+        await DiscordRequest(process.env.LOG_CHANNEL_PD + '/' + req.body.message.id, {
           method: 'PATCH',
           body: {
             embeds: [
@@ -499,7 +497,7 @@ app.post('/interactions', async function (req, res) {
           return;
         }
 
-        let endpointLogs = process.env.LOG_CHANNEL;
+        let endpointLogs = process.env.LOG_CHANNEL_PD;
 
 
         try {
