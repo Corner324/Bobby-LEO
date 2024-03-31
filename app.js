@@ -44,6 +44,7 @@ async function check_more_hour(){
     let last_message_data = await last_message.json();
 
     let probations_str = last_message_data.embeds[0].fields[1].value;
+    let trainers_str = last_message_data.embeds[0].fields[2].value;
 
     if(probations_str){
       let probations_list = probations_str.split('\n\u200B')
@@ -51,7 +52,6 @@ async function check_more_hour(){
       for (let i = 0; i < probations_list.length-1; i++) {
 
         let time_probation = probations_list[i].split(' ')[1].replace('<t:',"").replace(':R>','');
-        probat = probations_list[i].split(' ')[0].replace('<@', "").replace(">","")
         let actual_time = moment(new Date()).unix()// + 60 * 60 * 3;
         //console.log('Time left - ', ((actual_time-time_probation) / 60 ))
 
@@ -71,6 +71,34 @@ async function check_more_hour(){
       });
 
     }
+
+    if(trainers_str){
+      let trainers_list = trainers_str.split('\n\u200B')
+
+      for (let i = 0; i < trainers_list.length-1; i++) {
+
+        let time_trainers = trainers_list[i].split(' ')[1].replace('<t:',"").replace(':R>','');
+        let actual_time = moment(new Date()).unix()// + 60 * 60 * 3;
+        //console.log('Time left - ', ((actual_time-time_probation) / 60 ))
+
+        if(((actual_time-time_trainers) / 60 ) > 120){
+          trainers_list.splice(i, 1)
+          console.log(`ФТО кикнут!`)
+        }
+      }
+
+      last_message_data.embeds[0].fields[1].value = probations_list.join('\n\u200B');
+      last_message_data.embeds[0].fields[2].value = trainers_list.join('\n\u200B');
+
+      await DiscordRequest(endpointToLastMessage, {
+        method: 'PATCH',
+        body: {
+          embeds: [last_message_data.embeds[0]]
+        },
+      });
+
+    }
+
   }
   catch (e){
     console.log(e)
