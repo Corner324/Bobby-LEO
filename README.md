@@ -1,111 +1,74 @@
-# Getting Started app for Discord
+# Discord Bot Bobby LEO
 
-This project contains a basic rock-paper-scissors-style Discord app written in JavaScript, built for the [getting started guide](https://discord.com/developers/docs/getting-started).
-
-![Demo of app](https://github.com/discord/discord-example-app/raw/main/assets/getting-started-demo.gif?raw=true)
-
-> ✨ A version of this code is also hosted **[on Glitch 🎏](https://glitch.com/~getting-started-discord)** and **[on Replit 🌀](https://replit.com/github/discord/discord-example-app)**
-
-## Project structure
-Below is a basic overview of the project structure:
-
-```
-├── examples    -> short, feature-specific sample apps
-│   ├── app.js  -> finished app.js code
-│   ├── button.js
-│   ├── command.js
-│   ├── modal.js
-│   ├── selectMenu.js
-├── .env.sample -> sample .env file
-├── app.js      -> main entrypoint for app
-├── commands.js -> slash command payloads + helpers
-├── game.js     -> logic specific to RPS
-├── utils.js    -> utility functions and enums
-├── package.json
-├── README.md
-└── .gitignore
-```
-
-## Running app locally
-
-Before you start, you'll need to install [NodeJS](https://nodejs.org/en/download/) and [create a Discord app](https://discord.com/developers/applications) with the proper permissions:
-- `applications.commands`
-- `bot` (with Send Messages enabled)
+<p align="center">
+  <a href="https://github.com/Corner324/Bobby-LEO">
+    <img src="https://i.imgur.com/eR23ir4.png" alt="Logo" width="380" height="220"м>
+  </a>
+  
+## Description
+This Discord bot is designed to manage a field training program queue for trainees and their mentors. It allows users to join or leave the queue as trainees or mentors, take trainees from the queue, and log patrol sessions with trainees.
 
 
-Configuring the app is covered in detail in the [getting started guide](https://discord.com/developers/docs/getting-started).
+## Features
+1. **Queue Management**: Allows trainees to join or leave a queue and mentors to take trainees from the queue.
+2. **Automatic Expulsion**: Automatically removes trainees from the queue if they exceed a specified probation period.
+3. **Patrol Logging**: Logs patrol sessions between mentors and trainees, providing a structured format for reporting.
 
-### Setup project
 
-First clone the project:
-```
-git clone https://github.com/discord/discord-example-app.git
-```
+## Prerequisites
+- Node.js installed on your machine.
+- Discord bot token.
+- Discord interaction public key.
+- Environment variables set up in a `.env` file (refer to `.env.example`).
 
-Then navigate to its directory and install dependencies:
-```
-cd discord-example-app
-npm install
-```
-### Get app credentials
 
-Fetch the credentials from your app's settings and add them to a `.env` file (see `.env.sample` for an example). You'll need your app ID (`APP_ID`), bot token (`DISCORD_TOKEN`), and public key (`PUBLIC_KEY`).
+## Setup
+To set up and deploy this bot, follow these steps:
 
-Fetching credentials is covered in detail in the [getting started guide](https://discord.com/developers/docs/getting-started).
+1. **Environment Setup**:
+   - Create a `.env` file in the project root directory.
+   - Define the following environment variables:
+     - `PORT`: Port number for the Express server.
+     - `PUBLIC_KEY`: Public key for verifying Discord requests.
+     - `MAIN_CHANNEL`: ID of the main Discord channel for bot interactions.
+     - `DEV_CHANNEL`: ID of the channel for error logging and debugging.
+     - `LOG_CHANNEL`: ID of the channel for logging patrol sessions.
 
-> 🔑 Environment variables can be added to the `.env` file in Glitch or when developing locally, and in the Secrets tab in Replit (the lock icon on the left).
+2. **Dependencies Installation**:
+   - Run `npm install` to install the required dependencies specified in `package.json`.
 
-### Install slash commands
+3. **Starting the Bot**:
+   - Execute `npm run start` to start the Express server and initialize the bot.
+   - The bot will listen for interactions on the specified port.
 
-The commands for the example app are set up in `commands.js`. All of the commands in the `ALL_COMMANDS` array at the bottom of `commands.js` will be installed when you run the `register` command configured in `package.json`:
 
-```
-npm run register
-```
+## Usage
 
-### Run the app
+1. **Slash Commands**:
+   - Use slash commands to trigger specific actions, such as creating an FTP bot or testing the bot functionality.
 
-After your credentials are added, go ahead and run the app:
+2. **Button Interactions**:
+   - Interact with buttons in Discord messages to perform actions like joining/leaving the queue or taking a trainee.
 
-```
-node app.js
-```
+3. **Automatic Processes**:
+   - The bot automatically manages probation periods and expels trainees if they exceed the allowed time.
 
-> ⚙️ A package [like `nodemon`](https://github.com/remy/nodemon), which watches for local changes and restarts your app, may be helpful while locally developing.
 
-If you aren't following the [getting started guide](https://discord.com/developers/docs/getting-started), you can move the contents of `examples/app.js` (the finished `app.js` file) to the top-level `app.js`.
+## Commands
+- `/test`: Sends a test message.
+- `/create_ftp_bot`: Initializes the field training program queue.
 
-### Set up interactivity
+## Interactions
+- `СТАЖЕР`, `ВЗЯТЬ`, `ФТО`: Buttons for trainee and mentor interactions within the queue.
 
-The project needs a public endpoint where Discord can send requests. To develop and test locally, you can use something like [`ngrok`](https://ngrok.com/) to tunnel HTTP traffic.
+## Logging
+- Patrol sessions can be logged using the `ЗАВЕРШИТЬ ПАТРУЛЬ` button, which creates a log entry with relevant details.
 
-Install ngrok if you haven't already, then start listening on port `3000`:
+## Support
+For any issues or questions, please contact the bot developer.
 
-```
-ngrok http 3000
-```
-
-You should see your connection open:
-
-```
-Tunnel Status                 online
-Version                       2.0/2.0
-Web Interface                 http://127.0.0.1:4040
-Forwarding                    http://1234-someurl.ngrok.io -> localhost:3000
-Forwarding                    https://1234-someurl.ngrok.io -> localhost:3000
-
-Connections                  ttl     opn     rt1     rt5     p50     p90
-                              0       0       0.00    0.00    0.00    0.00
-```
-
-Copy the forwarding address that starts with `https`, in this case `https://1234-someurl.ngrok.io`, then go to your [app's settings](https://discord.com/developers/applications).
-
-On the **General Information** tab, there will be an **Interactions Endpoint URL**. Paste your ngrok address there, and append `/interactions` to it (`https://1234-someurl.ngrok.io/interactions` in the example).
-
-Click **Save Changes**, and your app should be ready to run 🚀
-
-## Other resources
-- Read **[the documentation](https://discord.com/developers/docs/intro)** for in-depth information about API features.
-- Browse the `examples/` folder in this project for smaller, feature-specific code examples
-- Join the **[Discord Developers server](https://discord.gg/discord-developers)** to ask questions about the API, attend events hosted by the Discord API team, and interact with other devs.
-- Check out **[community resources](https://discord.com/developers/docs/topics/community-resources#community-resources)** for language-specific tools maintained by community members.
+## Credits
+- Developed by [Corner324](https://github.com/Corner324).
+  
+## License
+This project is licensed under the [MIT License](https://github.com/Corner324/Bobby-LEO/blob/main/LICENSE).
