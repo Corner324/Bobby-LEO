@@ -103,12 +103,12 @@ async function check_more_hour(){
   catch (e){
     console.log(e)
 
-    await DiscordRequest(process.env.DEV_CHANNEL, {
-      method: 'POST',
-      body: {
-        content: e
-      },
-    });
+    // await DiscordRequest(process.env.DEV_CHANNEL, {
+    //   method: 'POST',
+    //   body: {
+    //     content: e
+    //   },
+    // });
   }
 
 
@@ -117,7 +117,7 @@ async function check_more_hour(){
 async function loop(){
 
     while (true){
-      await sleep(10 * 60 * 1000);
+      await sleep(1 * 60 * 1000);
 
       await DiscordRequest(process.env.DEV_CHANNEL, {
         method: 'POST',
