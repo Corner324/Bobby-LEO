@@ -46,8 +46,10 @@ async function check_more_hour(){
     let probations_str = last_message_data.embeds[0].fields[1].value;
     let trainers_str = last_message_data.embeds[0].fields[2].value;
 
+    let probations_list;
+
     if(probations_str){
-      let probations_list = probations_str.split('\n\u200B')
+      probations_list = probations_str.split('\n\u200B')
 
       for (let i = 0; i < probations_list.length-1; i++) {
 
@@ -72,8 +74,10 @@ async function check_more_hour(){
 
     }
 
+    let trainers_list;
+
     if(trainers_str){
-      let trainers_list = trainers_str.split('\n\u200B')
+      trainers_list = trainers_str.split('\n\u200B')
 
       for (let i = 0; i < trainers_list.length-1; i++) {
 
@@ -87,8 +91,13 @@ async function check_more_hour(){
         }
       }
 
-      last_message_data.embeds[0].fields[1].value = probations_list.join('\n\u200B');
-      last_message_data.embeds[0].fields[2].value = trainers_list.join('\n\u200B');
+      if(probations_list){
+        last_message_data.embeds[0].fields[1].value = probations_list.join('\n\u200B');
+      }
+      if(trainers_list){
+        last_message_data.embeds[0].fields[2].value = trainers_list.join('\n\u200B');
+      }
+      
 
       await DiscordRequest(endpointToLastMessage, {
         method: 'PATCH',
