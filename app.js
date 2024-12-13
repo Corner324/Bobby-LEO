@@ -4,25 +4,14 @@ import {
   InteractionType,
   InteractionResponseType,
   InteractionResponseFlags,
-  MessageComponentTypes,
-  ButtonStyleTypes,
 } from 'discord-interactions';
 import { VerifyDiscordRequest, DiscordRequest } from './utils.js';
 import moment from 'moment';
+import { check_more_hour } from './queueManager.js';
 
-// Create an express app
 const app = express();
-// Get port, or default to 3000
 const PORT = process.env.PORT || 3000;
-// Parse request body and verifies incoming requests using discord-interactions package
 app.use(express.json({ verify: VerifyDiscordRequest(process.env.PUBLIC_KEY) }));
-
-// Store for in-progress games. In production, you'd want to use a DB
-const activeGames = {};
-
-/**
- * Interactions endpoint URL where Discord will send HTTP requests
- */
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -32,101 +21,10 @@ function twoDigits(d) {
 
 let prob_list = []
 
-async function check_more_hour(){
-  try {
-    let messages = await DiscordRequest(process.env.MAIN_CHANNEL_PD, {method: 'GET'});
-    let messagesData = await messages.json();
-    let idLastMessage = messagesData[0].id
-
-    const endpointToLastMessage = process.env.MAIN_CHANNEL_PD + '/' + idLastMessage;
-
-    let last_message = await DiscordRequest(endpointToLastMessage, {method: 'GET'});
-    let last_message_data = await last_message.json();
-
-    let probations_str = last_message_data.embeds[0].fields[1].value;
-    let trainers_str = last_message_data.embeds[0].fields[2].value;
-
-    let probations_list;
-
-    if(probations_str){
-      probations_list = probations_str.split('\n\u200B')
-
-      for (let i = 0; i < probations_list.length-1; i++) {
-
-        let time_probation = probations_list[i].split(' ')[1].replace('<t:',"").replace(':R>','');
-        let actual_time = moment(new Date()).unix()// + 60 * 60 * 3;
-        //console.log('Time left - ', ((actual_time-time_probation) / 60 ))
-
-        if(((actual_time-time_probation) / 60 ) > 60){
-          probations_list.splice(i, 1)
-          console.log(`Стажер кикнут!`)
-        }
-      }
-
-      last_message_data.embeds[0].fields[1].value = probations_list.join('\n\u200B');
-
-      await DiscordRequest(endpointToLastMessage, {
-        method: 'PATCH',
-        body: {
-          embeds: [last_message_data.embeds[0]]
-        },
-      });
-
-    }
-
-    let trainers_list;
-
-    if(trainers_str){
-      trainers_list = trainers_str.split('\n\u200B')
-
-      for (let i = 0; i < trainers_list.length-1; i++) {
-
-        let time_trainers = trainers_list[i].split(' ')[1].replace('<t:',"").replace(':R>','');
-        let actual_time = moment(new Date()).unix()// + 60 * 60 * 3;
-        //console.log('Time left - ', ((actual_time-time_probation) / 60 ))
-
-        if(((actual_time-time_trainers) / 60 ) > 120){
-          trainers_list.splice(i, 1)
-          console.log(`ФТО кикнут!`)
-        }
-      }
-
-      if(probations_list){
-        last_message_data.embeds[0].fields[1].value = probations_list.join('\n\u200B');
-      }
-      if(trainers_list){
-        last_message_data.embeds[0].fields[2].value = trainers_list.join('\n\u200B');
-      }
-      
-
-      await DiscordRequest(endpointToLastMessage, {
-        method: 'PATCH',
-        body: {
-          embeds: [last_message_data.embeds[0]]
-        },
-      });
-
-    }
-
-  }
-  catch (e){
-    console.log(e)
-
-    // await DiscordRequest(process.env.DEV_CHANNEL, {
-    //   method: 'POST',
-    //   body: {
-    //     content: e
-    //   },
-    // });
-  }
-
-
-}
-
 async function loop(){
 
     while (true){
-      await sleep(1 * 60 * 1000);
+      await sleep(10 * 60 * 1000); // Интервал проверки: 1 минута
 
       await DiscordRequest(process.env.DEV_CHANNEL, {
         method: 'POST',
@@ -134,12 +32,9 @@ async function loop(){
           content: `Server Working - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${twoDigits(new Date().getUTCHours()+3)}:${twoDigits(new Date().getUTCMinutes())}`
         },
       });
-
       await check_more_hour()
-
     }
 }
-
 
 async function send_eph_message(res, message){
   await res.send({type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -149,19 +44,12 @@ async function send_eph_message(res, message){
     }
   });
 
-
   let mainChannel = process.env.MAIN_CHANNEL_PD;
-
   let messages = await DiscordRequest(mainChannel, {method: 'GET'});
   let messagesData = await messages.json();
   let idLastMessage = messagesData[0].id
 
   const endpoint = mainChannel + '/' + idLastMessage;
-
-
-  // await DiscordRequest(endpoint, {
-  //   method: 'DELETE',
-  // });
 
 }
 
@@ -169,6 +57,10 @@ async function send_eph_message(res, message){
 app.post('/interactions', async function (req, res) {
   // Interaction type and data
   const { type, id, data } = req.body;
+  const serverId = req.body.guild_id || req.body.guild.id;
+  if (serverId !== process.env.SERVER_PD) {
+    return; // Игнорируем события с других серверов
+  }
 
   /**
    * Handle verification requests
@@ -425,8 +317,8 @@ app.post('/interactions', async function (req, res) {
 
         await send_eph_message(res, `## 📋 Патруль успешно завершен!\n\u200B
         **Стажер:** ${messagesData.embeds[0].fields[1].value}
-        **Генератор отчетов:** [Ссылка](https://mdc.gtaw.me/generators/view/103)
-        **FTP секция форума:** [Ссылка](https://lspd.gtaw.me/viewforum.php?f=947&sid=e524c358347a390926c3da383c039b7d)
+        **Генератор отчетов:** [Ссылка](https://mdc.gtaw.io/generators/view/103)
+        **FTP секция:** [Ссылка](https://lspd.gtaw.io/viewforum.php?f=947)
         **Время начала патруля:** ${twoDigits(new Date(start_patrol_time * 1000).getUTCHours() + 3)}:${twoDigits(new Date(start_patrol_time * 1000).getUTCMinutes())}
         **Продолжительность:** ${twoDigits(patrol_time.getUTCHours())}:${twoDigits(patrol_time.getUTCMinutes())}`)
 
@@ -579,7 +471,7 @@ app.post('/interactions', async function (req, res) {
         let embed =  [
           {
             type: "rich",
-            title: `📋 Patrol Log - ${new Date().getUTCDate()}.${twoDigits(new Date().getUTCMonth())}.${new Date().getFullYear()} ${twoDigits(new Date().getUTCHours()+3)}:${twoDigits(new Date().getUTCMinutes())}`,
+            title: `📋 Patrol Log - ${new Date().getUTCDate()}.${twoDigits(Number(new Date().getUTCMonth())+1)}.${new Date().getFullYear()} ${twoDigits(new Date().getUTCHours()+3)}:${twoDigits(new Date().getUTCMinutes())}`,
             description: `Отчет о патруле со стажером\n\u200BПатруль был начат: <t:${actual_time}:R>`,
             color: 0x5664F1,
             footer: {text: 'О любых проблемах писать - corner324', icon_url: 'https://i.imgur.com/vbsliop.png'},
@@ -591,8 +483,6 @@ app.post('/interactions', async function (req, res) {
             ]
           }
         ]
-
-
 
         await DiscordRequest(endpointLogs, {
           method: 'POST',
@@ -627,20 +517,13 @@ app.post('/interactions', async function (req, res) {
 
         const endpointLastLogs = endpointLogs + '/' + idLastMessage;
 
-        // await DiscordRequest(endpointLastLogs, {
-        //   method: 'PATCH',
-        //   body: {
-        //     content: ''
-        //   },
-        // });
-
 
         await DiscordRequest(endpointLastLogs + '/threads', {
           method: 'POST',
           body: {
             name: `🔗 Ветка координации патруля ${new Date().getUTCDate()}-${twoDigits(new Date().getUTCMonth())}`,
             auto_archive_duration: 60,
-            message: {content: 'Обратите внимание, данная ветка будет удалена через час!'}
+            message: {content: 'Обратите внимание, данная ветка сохраняется и доступа после патруля'}
           },
         });
 
@@ -691,7 +574,7 @@ app.post('/interactions', async function (req, res) {
 
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, '127.0.0.1', async () => {
   console.log('Listening on port', PORT);
   await loop();
 });
