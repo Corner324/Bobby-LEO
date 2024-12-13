@@ -42,7 +42,7 @@ export async function check_more_hour() {
           const timeAdded = parseInt(timeMatch[1], 10); // Unix-время добавления
           const timeDiffMinutes = (currentTime - timeAdded) / 60;
   
-          if (timeDiffMinutes > 60) { // 60 минут ожидания
+          if (timeDiffMinutes > 120) { // 120 минут ожидания
             console.log(`⏰ Стажер ${probationsList[i]} был удален из очереди (превышено время ожидания: ${Math.floor(timeDiffMinutes)} минут).`);
             probationsList.splice(i, 1); // Удаляем стажера
             removedCount++;

@@ -22,7 +22,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function loop() {
   while (true) {
-    await sleep(1 * 60 * 1000); // Интервал проверки: 1 минута
+    await sleep(10 * 60 * 1000); // Интервал проверки: 10 минут
 
     await DiscordRequest(process.env.DEV_CHANNEL, {
       method: 'POST',
@@ -73,6 +73,28 @@ function createPatrolEmbed(trainee, trainer, timestamp) {
 }
 
 /**
+ * Обновляет сообщение с очередью стажеров и динамическими кнопками
+ * @param {string} endpoint - Endpoint сообщения
+ * @param {Object} embeds - Embed-сообщение
+ * @param {string} probations - Список стажеров
+ * @param {string} trainers - Список наставников
+ */
+async function updateQueueMessage(endpoint, embeds, probations, trainers) {
+  const probationsList = probations.split('\n\u200B').filter(Boolean);
+  embeds[0].fields[1].value = probations || '\u200B'; // Обновляем список стажеров
+  embeds[0].fields[2].value = trainers || '\u200B'; // Обновляем список наставников
+
+  // Генерируем компоненты с кнопками
+  const components = generateQueueComponents(probationsList);
+
+  // Отправляем обновленный embed
+  await DiscordRequest(endpoint, {
+    method: 'PATCH',
+    body: { embeds, components },
+  });
+}
+
+/**
  * Создает ветку для патруля и добавляет в нее участников
  * @param {string} channelId - ID лог-канала
  * @param {string} messageId - ID сообщения
@@ -103,7 +125,7 @@ async function createPatrolThread(channelId, messageId, trainerId, traineeId) {
   await DiscordRequest(`/channels/${threadId}/messages`, {
     method: 'POST',
     body: {
-      content: `👋 Привет, <@${traineeId}> и <@${trainerId}>! Эта ветка была создана специально для вас, тут вы можете предварительно скоординировать свои OOC действия.\n\u200BЖелаю вам продуктивной смены!\n\u200BОднако обратите внимание, данная ветка будет удалена через час!`,
+      content: `👋 Привет, <@${traineeId}> и <@${trainerId}>! Эта ветка была создана специально для вас, тут вы можете предварительно скоординировать свои OOC действия.\n\u200BЖелаю вам продуктивной смены!\n\u200BОднако обратите внимание, данная ветка сохранится и после окончания патруля!`,
     },
   });
 }
@@ -136,6 +158,77 @@ async function updateEmbed(endpoint, embeds) {
     body: { embeds },
   });
   log('Сообщение успешно обновлено.');
+}
+
+/**
+ * Генерирует кнопки для стажеров и сохраняет оригинальные кнопки
+ * @param {string[]} probationsList - Список стажеров
+ * @returns {Array} Массив компонентов кнопок
+ */
+function generateQueueComponents(probationsList) {
+  if (!Array.isArray(probationsList)) return []; // Проверка на массив
+
+  // Оригинальные кнопки
+  const originalButtons = [
+    {
+      style: 1,
+      label: `СТАЖЕР`,
+      custom_id: `queue`,
+      emoji: { name: `👶🏻` },
+      type: 2,
+    },
+    {
+      style: 2,
+      label: `ВЗЯТЬ`,
+      custom_id: `take`,
+      emoji: { name: `🤝` },
+      type: 2,
+    },
+    {
+      style: 3,
+      label: `ФТО`,
+      custom_id: `active`,
+      emoji: { name: `👴🏻` },
+      type: 2,
+    },
+  ];
+
+  // Динамические кнопки для каждого стажера
+  const traineeButtons = probationsList
+    .filter((entry) => entry) // Исключаем пустые строки
+    .map((entry) => {
+      const userIdMatch = entry.match(/<@(\d+)>/);
+      const usernameMatch = entry.match(/\(([^)]+)\)/);
+
+      const userId = userIdMatch ? userIdMatch[1] : null;
+      const username = usernameMatch ? usernameMatch[1] : 'Стажер';
+
+      if (!userId) return null; // Пропускаем некорректные записи
+
+      return {
+        type: 2,
+        style: 2,
+        label: `Взять ${username}`,
+        custom_id: `take_${userId}`,
+        emoji: { name: '🚀' },
+      };
+    })
+    .filter(Boolean); // Убираем null из массива
+
+  // Формируем блоки компонентов по максимум 5 кнопок в блоке
+  const dynamicComponents = [];
+  for (let i = 0; i < traineeButtons.length; i += 5) {
+    dynamicComponents.push({
+      type: 1,
+      components: traineeButtons.slice(i, i + 5),
+    });
+  }
+
+  // Возвращаем массив с оригинальными кнопками и динамическими блоками
+  return [
+    { type: 1, components: originalButtons }, // Блок с оригинальными кнопками
+    ...dynamicComponents, // Блоки с кнопками для стажеров
+  ];
 }
 
 /**
@@ -179,26 +272,51 @@ async function finishPatrol(req, res) {
 
     // Ответ пользователю
     await sendEphemeralMessage(res, `## 📋 Патруль завершен!\n\u200B
-**Продолжительность:** ${formatTime(duration.getUTCHours())}:${formatTime(duration.getUTCMinutes())}`);
+    **Продолжительность:** ${formatTime(duration.getUTCHours())}:${formatTime(duration.getUTCMinutes())}`);
     log(`Патруль завершен для сообщения ${messageId}.`);
+    return;
   } catch (error) {
     log(`Ошибка при завершении патруля: ${error.message}`, 'ERROR');
     await sendEphemeralMessage(res, '❌ Произошла ошибка при завершении патруля.');
+    return;
   }
+}
+
+/**
+ * Добавляет или удаляет наставника из очереди
+ * @param {string} trainers - Строка со списком наставников
+ * @param {string} userId - ID пользователя
+ * @param {string} username - Имя пользователя
+ * @param {number} timestamp - Метка времени
+ * @returns {string} Обновленный список наставников
+ */
+function toggleTrainerInQueue(trainers, userId, username, timestamp) {
+  const trainersList = (trainers || '').split('\n\u200B').filter(Boolean);
+
+  if (trainers.includes(`<@${userId}>`)) {
+    // Удаление наставника
+    log(`ФТО ${username} покинул очередь.`);
+    return trainersList.filter(entry => !entry.includes(`<@${userId}>`)).join('\n\u200B');
+  }
+
+  // Добавление наставника
+  log(`ФТО ${username} добавлен в очередь.`);
+  trainersList.push(`<@${userId}> (${username}) <t:${timestamp}:R>`);
+  return trainersList.join('\n\u200B');
 }
 
 /**
  * Добавляет или удаляет пользователя из очереди наставников
  */
-function toggleTrainerInQueue(trainers, userId, username, timestamp) {
-  const trainersList = trainers.split('\n\u200B').filter(Boolean);
-  if (trainers.includes(`<@${userId}>`)) {
-    log(`ФТО ${username} вышел из очереди.`);
-    return trainersList.filter(entry => !entry.includes(`<@${userId}>`)).join('\n\u200B');
+function toggleTraineeInQueue(probations, userId, username, timestamp) {
+  const probationsList = (probations || '').split('\n\u200B').filter(Boolean); // Проверка и разбиение
+  if (probations.includes(`<@${userId}>`)) {
+    log(`Стажер ${username} покинул очередь.`);
+    return probationsList.filter(entry => !entry.includes(`<@${userId}>`)).join('\n\u200B'); // Удаляем стажера
   }
-  log(`ФТО ${username} добавлен в очередь.`);
-  trainersList.push(`<@${userId}> <t:${timestamp}:R>`);
-  return trainersList.join('\n\u200B');
+  log(`Стажер ${username} добавлен в очередь.`);
+  probationsList.push(`<@${userId}> (${username}) <t:${timestamp}:R>`); // Добавляем стажера с меткой времени
+  return probationsList.join('\n\u200B');
 }
 
 /**
@@ -217,30 +335,18 @@ function takeFirstTrainee(probations) {
 }
 
 /**
- * Добавляет или удаляет пользователя из очереди стажеров
- */
-function toggleTraineeInQueue(probations, userId, username, timestamp) {
-  const probationsList = probations.split('\n\u200B').filter(Boolean); // Разбиваем на строки и убираем пустые
-  if (probations.includes(`<@${userId}>`)) {
-    log(`Стажер ${username} покинул очередь.`);
-    return probationsList.filter(entry => !entry.includes(`<@${userId}>`)).join('\n\u200B'); // Удаляем стажера
-  }
-  log(`Стажер ${username} добавлен в очередь.`);
-  probationsList.push(`<@${userId}> <t:${timestamp}:R>`); // Добавляем стажера с меткой времени
-  return probationsList.join('\n\u200B');
-}
-
-/**
  * Отправка временного сообщения пользователю
  */
 async function sendEphemeralMessage(res, content) {
-  await res.send({
-    type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-    data: {
-      flags: InteractionResponseFlags.EPHEMERAL,
-      content,
-    },
-  });
+  if (!res.headersSent) {
+    await res.send({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        flags: InteractionResponseFlags.EPHEMERAL,
+        content,
+      },
+    });
+  }
 }
 
 app.post('/interactions', async (req, res) => {
@@ -255,7 +361,7 @@ app.post('/interactions', async (req, res) => {
       const { custom_id: componentId } = data;
       const { id: userId, username } = member.user;
 
-      // Получаем последнее сообщение
+      // Получаем последнее сообщение с очередью
       const { lastMessage, endpoint } = await getLastMessage(process.env.MAIN_CHANNEL_PD);
       if (!lastMessage) throw new Error('Не удалось получить сообщение с очередью.');
 
@@ -264,83 +370,146 @@ app.post('/interactions', async (req, res) => {
       let trainers = fields[2].value || '';
       const currentTime = moment().unix();
 
-      // Обработка кнопки "ПАТРУЛЬ ЗАВЕРШЕН"
+      // Обработка кнопки "ЗАВЕРШИТЬ ПАТРУЛЬ"
       if (componentId === 'finish_patrol') {
-        return await finishPatrol(req, res);
-      }
-
-      // Обработка кнопки "ФТО"
-      if (componentId === 'active') {
-        trainers = toggleTrainerInQueue(trainers, userId, username, currentTime);
-        lastMessage.embeds[0].fields[2].value = trainers;
-        await updateEmbed(endpoint, [lastMessage.embeds[0]]);
-        await sendEphemeralMessage(res, '✅ Статус наставника обновлен.');
+        await finishPatrol(req, res);
+        return;
       }
 
       // Обработка кнопки "СТАЖЕР"
       if (componentId === 'queue') {
         probations = toggleTraineeInQueue(probations, userId, username, currentTime);
-        lastMessage.embeds[0].fields[1].value = probations;
-        await updateEmbed(endpoint, [lastMessage.embeds[0]]);
+        await updateQueueMessage(endpoint, lastMessage.embeds, probations, trainers);
         await sendEphemeralMessage(
           res,
           probations.includes(`<@${userId}>`)
             ? '✅ Вы встали в очередь как стажер.'
             : '⏪ Вы вышли из очереди.'
         );
+        return;
+      }
+
+      // Обработка кнопки "ФТО"
+      if (componentId === 'active') {
+        trainers = toggleTrainerInQueue(trainers, userId, username, currentTime);
+        await updateQueueMessage(endpoint, lastMessage.embeds, probations, trainers);
+        await sendEphemeralMessage(res, '✅ Статус наставника обновлен.');
+        return;
       }
 
       if (componentId === 'take') {
-        if (!probations) {
-          log('Попытка взять стажера при пустой очереди.', 'WARN');
+        if (!probations || probations.trim() === '') {
           return await sendEphemeralMessage(res, '⏳ В очереди пока нет стажеров.');
         }
       
-        try {
-          // Удаляем наставника из списка
-          const trainersList = trainers.split('\n\u200B').filter(Boolean);
-          const updatedTrainers = trainersList.filter(entry => !entry.includes(`<@${userId}>`)).join('\n\u200B');
-          trainers = updatedTrainers;
+        const probationsList = probations.split('\n\u200B').filter(Boolean); // Список стажеров
+        const trainee = probationsList.shift(); // Извлекаем первого стажера из очереди
       
-          // Берем первого стажера из очереди
-          const probationsList = probations.split('\n\u200B').filter(Boolean);
-          const trainee = probationsList.shift();
-          if (!trainee) throw new Error('Не удалось найти стажера в очереди.');
-          probations = probationsList.join('\n\u200B');
-      
-          const traineeId = trainee.split(' ')[0]; // Извлекаем ID стажера
-          const currentTime = moment().unix();
-      
-          // Обновляем embed с очередью
-          lastMessage.embeds[0].fields[1].value = probations;
-          lastMessage.embeds[0].fields[2].value = trainers;
-          await updateEmbed(endpoint, [lastMessage.embeds[0]]);
-      
-          // Создаем embed-лог
-          const patrolEmbed = createPatrolEmbed(traineeId, `<@${userId}>`, currentTime);
-          const logResponse = await DiscordRequest(process.env.LOG_CHANNEL_PD, {
-            method: 'POST',
-            body: { embeds: patrolEmbed },
-          });
-      
-          const logData = await logResponse.json();
-          const logMessageId = logData.id;
-      
-          // Создаем ветку и добавляем участников
-          await createPatrolThread(process.env.LOG_CHANNEL_PD, logMessageId, userId, traineeId.replace(/[<>@]/g, ''));
-      
-          // Сообщаем наставнику, что он взял стажера
-          log(`Наставник ${username} взял стажера ${traineeId}.`);
-          await sendEphemeralMessage(res, `✅ Вы взяли стажера ${traineeId}. Удачной смены!`);
-        } catch (error) {
-          log(`Ошибка при взятии стажера: ${error.message}`, 'ERROR');
-          await sendEphemeralMessage(res, '❌ Произошла ошибка при взятии стажера.');
+        if (!trainee) {
+          return await sendEphemeralMessage(res, '⏳ В очереди пока нет стажеров.');
         }
+      
+        // Извлекаем ID стажера из записи
+        const traineeIdMatch = trainee.match(/<@(\d+)>/);
+        const traineeId = traineeIdMatch ? traineeIdMatch[1] : null;
+      
+        if (!traineeId) {
+          log('❌ Некорректный формат стажера в очереди.', 'ERROR');
+          return await sendEphemeralMessage(res, '❌ Произошла ошибка: некорректный формат стажера.');
+        }
+      
+        // Удаляем наставника из очереди (если он был)
+        const trainersList = trainers.split('\n\u200B').filter(entry => !entry.includes(`<@${userId}>`));
+        probations = probationsList.join('\n\u200B'); // Обновленный список стажеров
+        trainers = trainersList.join('\n\u200B');     // Обновленный список наставников
+      
+        // Обновляем embed-сообщение с очередью
+        lastMessage.embeds[0].fields[1].value = probations || '\u200B'; // Обновленный список стажеров
+        lastMessage.embeds[0].fields[2].value = trainers || '\u200B';  // Обновленный список наставников
+        await updateQueueMessage(endpoint, lastMessage.embeds, probations, trainers);
+      
+        // Создаем embed-лог и ветку
+        const currentTime = moment().unix();
+        const patrolEmbed = createPatrolEmbed(`<@${traineeId}>`, `<@${userId}>`, currentTime);
+      
+        const logResponse = await DiscordRequest(process.env.LOG_CHANNEL_PD, {
+          method: 'POST',
+          body: { embeds: patrolEmbed },
+        });
+        const logData = await logResponse.json();
+        const logMessageId = logData.id;
+      
+        // Создаем ветку для координации патруля
+        await createPatrolThread(process.env.LOG_CHANNEL_PD, logMessageId, userId, traineeId);
+      
+        log(`✅ Наставник ${username} взял стажера <@${traineeId}> для патруля.`);
+        await sendEphemeralMessage(res, `✅ Вы взяли стажера <@${traineeId}>. Удачной смены!`);
+        return;
+      }
+
+      // Обработка кнопок с конкретными стажерами (take_{ID})
+      if (componentId.startsWith('take_')) {
+        const traineeId = componentId.split('_')[1];
+        const traineeEntry = probations.split('\n\u200B').find(entry => entry.includes(`<@${traineeId}>`));
+      
+        if (!traineeEntry) {
+          return await sendEphemeralMessage(res, '❌ Этот стажер уже был взят или не найден в очереди.');
+        }
+      
+        // Удаляем стажера и наставника из очереди
+        const probationsList = probations.split('\n\u200B').filter(entry => !entry.includes(`<@${traineeId}>`));
+        const trainersList = trainers.split('\n\u200B').filter(entry => !entry.includes(`<@${userId}>`));
+        probations = probationsList.join('\n\u200B');
+        trainers = trainersList.join('\n\u200B');
+      
+        // Обновляем embed-сообщение с очередью
+        lastMessage.embeds[0].fields[1].value = probations;
+        lastMessage.embeds[0].fields[2].value = trainers;
+        await updateQueueMessage(endpoint, lastMessage.embeds, probations, trainers);
+      
+        // Создаем embed-лог и добавляем кнопку "ЗАВЕРШИТЬ ПАТРУЛЬ"
+        const currentTime = moment().unix();
+        const patrolEmbed = createPatrolEmbed(`<@${traineeId}>`, `<@${userId}>`, currentTime);
+      
+        const logResponse = await DiscordRequest(process.env.LOG_CHANNEL_PD, {
+          method: 'POST',
+          body: {
+            embeds: patrolEmbed,
+            components: [
+              {
+                type: 1,
+                components: [
+                  {
+                    style: 1,
+                    label: 'ЗАВЕРШИТЬ ПАТРУЛЬ',
+                    custom_id: 'finish_patrol',
+                    emoji: { name: '🏁' },
+                    disabled: false,
+                    type: 2,
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      
+        const logData = await logResponse.json();
+        const logMessageId = logData.id;
+      
+        // Создаем ветку для координации патруля
+        await createPatrolThread(process.env.LOG_CHANNEL_PD, logMessageId, userId, traineeId);
+      
+        // Логирование и сообщение пользователю
+        log(`Наставник ${username} выбрал стажера <@${traineeId}> для патруля.`);
+        await sendEphemeralMessage(res, `✅ Вы выбрали стажера <@${traineeId}> для патруля. Удачной смены!`);
+        return;
       }
     }
   } catch (error) {
     log(`Ошибка обработки взаимодействия: ${error.message}`, 'ERROR');
+    log(`Лог ошибки: ${error.description}`, 'ERROR');
     await sendEphemeralMessage(res, '🚨 Произошла непредвиденная ошибка.');
+    return;
   }
 });
 
